@@ -1,0 +1,1053 @@
+/*
+ * Copyright The OpenTelemetry Authors
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package io.opentelemetry.sdk.trace;
+
+import static io.opentelemetry.api.common.AttributeKey.booleanArrayKey;
+import static io.opentelemetry.api.common.AttributeKey.booleanKey;
+import static io.opentelemetry.api.common.AttributeKey.doubleArrayKey;
+import static io.opentelemetry.api.common.AttributeKey.doubleKey;
+import static io.opentelemetry.api.common.AttributeKey.longArrayKey;
+import static io.opentelemetry.api.common.AttributeKey.longKey;
+import static io.opentelemetry.api.common.AttributeKey.stringArrayKey;
+import static io.opentelemetry.api.common.AttributeKey.stringKey;
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
+
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.common.Attributes;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.SpanId;
+import io.opentelemetry.api.trace.SpanKind;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.api.trace.TracerProvider;
+import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
+import io.opentelemetry.sdk.trace.data.LinkData;
+import io.opentelemetry.sdk.trace.data.SpanData;
+import io.opentelemetry.sdk.trace.samplers.Sampler;
+import io.opentelemetry.sdk.trace.samplers.SamplingDecision;
+import io.opentelemetry.sdk.trace.samplers.SamplingResult;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
+import javax.annotation.Nullable;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class SdkSpanBuilderTest {
+
+  private static final String SPAN_NAME = "span_name";
+  private final SpanContext sampledSpanContext =
+      SpanContext.create(
+          "12345678876543211234567887654321",
+          "8765432112345678",
+          TraceFlags.getSampled(),
+          TraceState.getDefault());
+
+  @Mock private SpanProcessor mockedSpanProcessor;
+
+  private SdkTracer sdkTracer;
+
+  @BeforeEach
+  public void setUp() {
+    SdkTracerProvider tracerSdkFactory =
+        SdkTracerProvider.builder().addSpanProcessor(mockedSpanProcessor).build();
+    sdkTracer = (SdkTracer) tracerSdkFactory.get("SpanBuilderSdkTest");
+
+    Mockito.when(mockedSpanProcessor.isStartRequired()).thenReturn(true);
+    Mockito.when(mockedSpanProcessor.isEndRequired()).thenReturn(true);
+  }
+
+  @Test
+  void addLink() {
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.addLink(sampledSpanContext);
+    spanBuilder.addLink(sampledSpanContext, Attributes.empty());
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      assertThat(span.toSpanData().getLinks()).hasSize(2);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void addLink_invalid() {
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.addLink(Span.getInvalid().getSpanContext());
+    spanBuilder.addLink(Span.getInvalid().getSpanContext(), Attributes.empty());
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      assertThat(span.toSpanData().getLinks()).isEmpty();
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void truncateLink() {
+    int maxNumberOfLinks = 8;
+    SpanLimits spanLimits = SpanLimits.builder().setMaxNumberOfLinks(maxNumberOfLinks).build();
+    TracerProvider tracerProvider = SdkTracerProvider.builder().setSpanLimits(spanLimits).build();
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = tracerProvider.get("test").spanBuilder(SPAN_NAME);
+    for (int i = 0; i < 2 * maxNumberOfLinks; i++) {
+      spanBuilder.addLink(sampledSpanContext);
+    }
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      List<LinkData> links = spanData.getLinks();
+      assertThat(links).hasSize(maxNumberOfLinks);
+      for (int i = 0; i < maxNumberOfLinks; i++) {
+        assertThat(links.get(i)).isEqualTo(LinkData.create(sampledSpanContext));
+        assertThat(spanData.getTotalRecordedLinks()).isEqualTo(2 * maxNumberOfLinks);
+      }
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void truncateLinkAttributes() {
+    SpanLimits spanLimits = SpanLimits.builder().setMaxNumberOfAttributesPerLink(1).build();
+    TracerProvider tracerProvider = SdkTracerProvider.builder().setSpanLimits(spanLimits).build();
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = tracerProvider.get("test").spanBuilder(SPAN_NAME);
+    Attributes attributes =
+        Attributes.of(
+            stringKey("key0"), "str",
+            stringKey("key1"), "str",
+            stringKey("key2"), "str");
+    spanBuilder.addLink(sampledSpanContext, attributes);
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      assertThat(span.toSpanData().getLinks())
+          .containsExactly(
+              LinkData.create(sampledSpanContext, Attributes.of(stringKey("key0"), "str"), 3));
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void linkAttributeLength() {
+    int maxLength = 25;
+    TracerProvider tracerProvider =
+        SdkTracerProvider.builder()
+            .setSpanLimits(SpanLimits.builder().setMaxAttributeValueLength(maxLength).build())
+            .build();
+    SpanBuilder spanBuilder = tracerProvider.get("test").spanBuilder(SPAN_NAME);
+    String strVal = IntStream.range(0, maxLength).mapToObj(i -> "a").collect(joining());
+    String tooLongStrVal = strVal + strVal;
+
+    Attributes attributes =
+        Attributes.builder()
+            .put("string", tooLongStrVal)
+            .put("boolean", true)
+            .put("long", 1L)
+            .put("double", 1.0)
+            .put(stringArrayKey("stringArray"), Arrays.asList(strVal, tooLongStrVal))
+            .put(booleanArrayKey("booleanArray"), Arrays.asList(true, false))
+            .put(longArrayKey("longArray"), Arrays.asList(1L, 2L))
+            .put(doubleArrayKey("doubleArray"), Arrays.asList(1.0, 2.0))
+            .build();
+    spanBuilder.addLink(sampledSpanContext, attributes);
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      attributes = span.toSpanData().getLinks().get(0).getAttributes();
+
+      assertThat(attributes.get(stringKey("string"))).isEqualTo(strVal);
+      assertThat(attributes.get(booleanKey("boolean"))).isEqualTo(true);
+      assertThat(attributes.get(longKey("long"))).isEqualTo(1L);
+      assertThat(attributes.get(doubleKey("double"))).isEqualTo(1.0);
+      assertThat(attributes.get(stringArrayKey("stringArray")))
+          .isEqualTo(Arrays.asList(strVal, strVal));
+      assertThat(attributes.get(booleanArrayKey("booleanArray")))
+          .isEqualTo(Arrays.asList(true, false));
+      assertThat(attributes.get(longArrayKey("longArray"))).isEqualTo(Arrays.asList(1L, 2L));
+      assertThat(attributes.get(doubleArrayKey("doubleArray"))).isEqualTo(Arrays.asList(1.0, 2.0));
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void addLink_NoEffectAfterStartSpan() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.addLink(sampledSpanContext);
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      assertThat(span.toSpanData().getLinks())
+          .containsExactly(LinkData.create(sampledSpanContext, Attributes.empty()));
+      // Use a different sampledSpanContext to ensure no logic that avoids duplicate links makes
+      // this test to pass.
+      spanBuilder.addLink(
+          SpanContext.create(
+              "00000000000004d20000000000001a85",
+              "0000000000002694",
+              TraceFlags.getSampled(),
+              TraceState.getDefault()));
+      assertThat(span.toSpanData().getLinks())
+          .containsExactly(LinkData.create(sampledSpanContext, Attributes.empty()));
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void addLinkSpanContext_null() {
+    assertThatCode(() -> sdkTracer.spanBuilder(SPAN_NAME).addLink(null)).doesNotThrowAnyException();
+  }
+
+  @Test
+  void addLinkSpanContextAttributes_nullContext() {
+    assertThatCode(() -> sdkTracer.spanBuilder(SPAN_NAME).addLink(null, Attributes.empty()))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void addLinkSpanContextAttributes_nullAttributes() {
+    assertThatCode(() -> sdkTracer.spanBuilder(SPAN_NAME).addLink(sampledSpanContext, null))
+        .doesNotThrowAnyException();
+  }
+
+  @Test
+  void setAttribute() {
+    SpanBuilder spanBuilder =
+        sdkTracer
+            .spanBuilder(SPAN_NAME)
+            .setAttribute("string", "value")
+            .setAttribute("long", 12345L)
+            .setAttribute("double", .12345)
+            .setAttribute("boolean", true)
+            .setAttribute(stringKey("stringAttribute"), "attrvalue");
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      Attributes attrs = spanData.getAttributes();
+      assertThat(attrs.size()).isEqualTo(5);
+      assertThat(attrs.get(stringKey("string"))).isEqualTo("value");
+      assertThat(attrs.get(longKey("long"))).isEqualTo(12345L);
+      assertThat(attrs.get(doubleKey("double"))).isEqualTo(0.12345);
+      assertThat(attrs.get(booleanKey("boolean"))).isEqualTo(true);
+      assertThat(attrs.get(stringKey("stringAttribute"))).isEqualTo("attrvalue");
+      assertThat(spanData.getTotalAttributeCount()).isEqualTo(5);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void setAttribute_afterEnd() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute("string", "value");
+    spanBuilder.setAttribute("long", 12345L);
+    spanBuilder.setAttribute("double", .12345);
+    spanBuilder.setAttribute("boolean", true);
+    spanBuilder.setAttribute(stringKey("stringAttribute"), "attrvalue");
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      Attributes attrs = span.toSpanData().getAttributes();
+      assertThat(attrs.size()).isEqualTo(5);
+      assertThat(attrs.get(stringKey("string"))).isEqualTo("value");
+      assertThat(attrs.get(longKey("long"))).isEqualTo(12345L);
+      assertThat(attrs.get(doubleKey("double"))).isEqualTo(0.12345);
+      assertThat(attrs.get(booleanKey("boolean"))).isEqualTo(true);
+      assertThat(attrs.get(stringKey("stringAttribute"))).isEqualTo("attrvalue");
+    } finally {
+      span.end();
+    }
+
+    span.setAttribute("string2", "value");
+    span.setAttribute("long2", 12345L);
+    span.setAttribute("double2", .12345);
+    span.setAttribute("boolean2", true);
+    span.setAttribute(stringKey("stringAttribute2"), "attrvalue");
+
+    Attributes attrs = span.toSpanData().getAttributes();
+    assertThat(attrs.size()).isEqualTo(5);
+    assertThat(attrs.get(stringKey("string2"))).isNull();
+    assertThat(attrs.get(longKey("long2"))).isNull();
+    assertThat(attrs.get(doubleKey("double2"))).isNull();
+    assertThat(attrs.get(booleanKey("boolean2"))).isNull();
+    assertThat(attrs.get(stringKey("stringAttribute2"))).isNull();
+  }
+
+  @Test
+  void setAttribute_emptyArrayAttributeValue() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute(stringArrayKey("stringArrayAttribute"), emptyList());
+    spanBuilder.setAttribute(booleanArrayKey("boolArrayAttribute"), emptyList());
+    spanBuilder.setAttribute(longArrayKey("longArrayAttribute"), emptyList());
+    spanBuilder.setAttribute(doubleArrayKey("doubleArrayAttribute"), emptyList());
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(4);
+  }
+
+  @Test
+  void setAttribute_nullStringValue() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute("emptyString", "");
+    spanBuilder.setAttribute("nullString", null);
+    spanBuilder.setAttribute(stringKey("nullStringAttributeValue"), null);
+    spanBuilder.setAttribute(stringKey("emptyStringAttributeValue"), "");
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(2);
+  }
+
+  @Test
+  void setAttribute_onlyNullStringValue() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute(stringKey("nullStringAttributeValue"), null);
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    assertThat(span.toSpanData().getAttributes().isEmpty()).isTrue();
+  }
+
+  @Test
+  void setAttribute_NoEffectAfterStartSpan() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute("key1", "value1");
+    spanBuilder.setAttribute("key2", "value2");
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+
+    Attributes beforeAttributes = span.toSpanData().getAttributes();
+    assertThat(beforeAttributes.size()).isEqualTo(2);
+    assertThat(beforeAttributes.get(stringKey("key1"))).isEqualTo("value1");
+    assertThat(beforeAttributes.get(stringKey("key2"))).isEqualTo("value2");
+
+    spanBuilder.setAttribute("key3", "value3");
+
+    Attributes afterAttributes = span.toSpanData().getAttributes();
+    assertThat(afterAttributes.size()).isEqualTo(2);
+    assertThat(afterAttributes.get(stringKey("key1"))).isEqualTo("value1");
+    assertThat(afterAttributes.get(stringKey("key2"))).isEqualTo("value2");
+  }
+
+  @Test
+  void setAttribute_nullAttributeValue() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute("emptyString", "");
+    spanBuilder.setAttribute("nullString", null);
+    spanBuilder.setAttribute(stringKey("nullStringAttributeValue"), null);
+    spanBuilder.setAttribute(stringKey("emptyStringAttributeValue"), "");
+    spanBuilder.setAttribute("longAttribute", 0L);
+    spanBuilder.setAttribute("boolAttribute", false);
+    spanBuilder.setAttribute("doubleAttribute", 0.12345f);
+    spanBuilder.setAttribute(stringArrayKey("stringArrayAttribute"), Arrays.asList("", null));
+    spanBuilder.setAttribute(booleanArrayKey("boolArrayAttribute"), Arrays.asList(true, null));
+    spanBuilder.setAttribute(longArrayKey("longArrayAttribute"), Arrays.asList(12345L, null));
+    spanBuilder.setAttribute(doubleArrayKey("doubleArrayAttribute"), Arrays.asList(1.2345, null));
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(9);
+  }
+
+  @Test
+  void setAttribute_nullAttributeValue_afterEnd() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    spanBuilder.setAttribute("emptyString", "");
+    spanBuilder.setAttribute(stringKey("emptyStringAttributeValue"), "");
+    spanBuilder.setAttribute("longAttribute", 0L);
+    spanBuilder.setAttribute("boolAttribute", false);
+    spanBuilder.setAttribute("doubleAttribute", 0.12345f);
+    spanBuilder.setAttribute(stringArrayKey("stringArrayAttribute"), Arrays.asList("", null));
+    spanBuilder.setAttribute(booleanArrayKey("boolArrayAttribute"), Arrays.asList(true, null));
+    spanBuilder.setAttribute(longArrayKey("longArrayAttribute"), Arrays.asList(12345L, null));
+    spanBuilder.setAttribute(doubleArrayKey("doubleArrayAttribute"), Arrays.asList(1.2345, null));
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(9);
+    span.end();
+    span.setAttribute("emptyString", null);
+    span.setAttribute(stringKey("emptyStringAttributeValue"), null);
+    span.setAttribute(longKey("longAttribute"), null);
+    span.setAttribute(booleanKey("boolAttribute"), null);
+    span.setAttribute(doubleKey("doubleAttribute"), null);
+    span.setAttribute(stringArrayKey("stringArrayAttribute"), null);
+    span.setAttribute(booleanArrayKey("boolArrayAttribute"), null);
+    span.setAttribute(longArrayKey("longArrayAttribute"), null);
+    span.setAttribute(doubleArrayKey("doubleArrayAttribute"), null);
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(9);
+  }
+
+  @Test
+  void droppingAttributes() {
+    int maxNumberOfAttrs = 8;
+    SpanLimits spanLimits = SpanLimits.builder().setMaxNumberOfAttributes(maxNumberOfAttrs).build();
+    TracerProvider tracerProvider = SdkTracerProvider.builder().setSpanLimits(spanLimits).build();
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = tracerProvider.get("test").spanBuilder(SPAN_NAME);
+    for (int i = 0; i < 2 * maxNumberOfAttrs; i++) {
+      spanBuilder.setAttribute("key" + i, i);
+    }
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      Attributes attrs = span.toSpanData().getAttributes();
+      assertThat(attrs.size()).isEqualTo(maxNumberOfAttrs);
+      for (int i = 0; i < maxNumberOfAttrs; i++) {
+        assertThat(attrs.get(longKey("key" + i))).isEqualTo(i);
+      }
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void addAttributes_OnlyViaSampler() {
+
+    Sampler sampler =
+        new Sampler() {
+          @Override
+          public SamplingResult shouldSample(
+              Context parentContext,
+              String traceId,
+              String name,
+              SpanKind spanKind,
+              Attributes attributes,
+              List<LinkData> parentLinks) {
+            return SamplingResult.create(
+                SamplingDecision.RECORD_AND_SAMPLE,
+                Attributes.builder().put("cat", "meow").build());
+          }
+
+          @Override
+          public String getDescription() {
+            return "test";
+          }
+        };
+    TracerProvider tracerProvider = SdkTracerProvider.builder().setSampler(sampler).build();
+    // Verify methods do not crash.
+    SpanBuilder spanBuilder = tracerProvider.get("test").spanBuilder(SPAN_NAME);
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    span.end();
+    assertThat(span.toSpanData().getAttributes().size()).isEqualTo(1);
+    assertThat(span.toSpanData().getAttributes().get(stringKey("cat"))).isEqualTo("meow");
+  }
+
+  @Test
+  void setAllAttributes() {
+    Attributes attributes =
+        Attributes.builder()
+            .put("string", "value")
+            .put("long", 12345L)
+            .put("double", .12345)
+            .put("boolean", true)
+            .put(stringKey("stringAttribute"), "attrvalue")
+            .build();
+
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME).setAllAttributes(attributes);
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      Attributes attrs = spanData.getAttributes();
+      assertThat(attrs.size()).isEqualTo(5);
+      assertThat(attrs.get(stringKey("string"))).isEqualTo("value");
+      assertThat(attrs.get(longKey("long"))).isEqualTo(12345L);
+      assertThat(attrs.get(doubleKey("double"))).isEqualTo(0.12345);
+      assertThat(attrs.get(booleanKey("boolean"))).isEqualTo(true);
+      assertThat(attrs.get(stringKey("stringAttribute"))).isEqualTo("attrvalue");
+      assertThat(spanData.getTotalAttributeCount()).isEqualTo(5);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void setAllAttributes_mergesAttributes() {
+    Attributes attributes =
+        Attributes.builder()
+            .put("string", "value")
+            .put("long", 12345L)
+            .put("double", .12345)
+            .put("boolean", true)
+            .put(stringKey("stringAttribute"), "attrvalue")
+            .build();
+
+    SpanBuilder spanBuilder =
+        sdkTracer
+            .spanBuilder(SPAN_NAME)
+            .setAttribute("string", "otherValue")
+            .setAttribute("boolean", false)
+            .setAttribute("existingString", "existingValue")
+            .setAllAttributes(attributes);
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      Attributes attrs = spanData.getAttributes();
+      assertThat(attrs.size()).isEqualTo(6);
+      assertThat(attrs.get(stringKey("string"))).isEqualTo("value");
+      assertThat(attrs.get(stringKey("existingString"))).isEqualTo("existingValue");
+      assertThat(attrs.get(longKey("long"))).isEqualTo(12345L);
+      assertThat(attrs.get(doubleKey("double"))).isEqualTo(0.12345);
+      assertThat(attrs.get(booleanKey("boolean"))).isEqualTo(true);
+      assertThat(attrs.get(stringKey("stringAttribute"))).isEqualTo("attrvalue");
+      assertThat(spanData.getTotalAttributeCount()).isEqualTo(8);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void setAllAttributes_nullAttributes() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME).setAllAttributes(null);
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      Attributes attrs = spanData.getAttributes();
+      assertThat(attrs.size()).isEqualTo(0);
+      assertThat(spanData.getTotalAttributeCount()).isEqualTo(0);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void setAllAttributes_emptyAttributes() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME).setAllAttributes(Attributes.empty());
+
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    try {
+      SpanData spanData = span.toSpanData();
+      Attributes attrs = spanData.getAttributes();
+      assertThat(attrs.size()).isEqualTo(0);
+      assertThat(spanData.getTotalAttributeCount()).isEqualTo(0);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void recordEvents_default() {
+    Span span = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try {
+      assertThat(span.isRecording()).isTrue();
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void kind_default() {
+    SdkSpan span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try {
+      assertThat(span.toSpanData().getKind()).isEqualTo(SpanKind.INTERNAL);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void kind() {
+    SdkSpan span =
+        (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).setSpanKind(SpanKind.CONSUMER).startSpan();
+    try {
+      assertThat(span.toSpanData().getKind()).isEqualTo(SpanKind.CONSUMER);
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void sampler() {
+    Span span =
+        SdkTracerProvider.builder()
+            .setSampler(Sampler.alwaysOff())
+            .build()
+            .get("test")
+            .spanBuilder(SPAN_NAME)
+            .startSpan();
+    try {
+      assertThat(span.getSpanContext().isSampled()).isFalse();
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void sampler_decisionAttributes() {
+    String samplerAttributeName = "sampler-attribute";
+    AttributeKey<String> samplerAttributeKey = stringKey(samplerAttributeName);
+    SdkSpan span =
+        (SdkSpan)
+            SdkTracerProvider.builder()
+                .setSampler(
+                    new Sampler() {
+                      @Override
+                      public SamplingResult shouldSample(
+                          @Nullable Context parentContext,
+                          String traceId,
+                          String name,
+                          SpanKind spanKind,
+                          Attributes attributes,
+                          List<LinkData> parentLinks) {
+                        return new SamplingResult() {
+                          @Override
+                          public SamplingDecision getDecision() {
+                            return SamplingDecision.RECORD_AND_SAMPLE;
+                          }
+
+                          @Override
+                          public Attributes getAttributes() {
+                            return Attributes.of(samplerAttributeKey, "bar");
+                          }
+                        };
+                      }
+
+                      @Override
+                      public String getDescription() {
+                        return "test sampler";
+                      }
+                    })
+                .addSpanProcessor(mockedSpanProcessor)
+                .build()
+                .get("test")
+                .spanBuilder(SPAN_NAME)
+                .setAttribute(samplerAttributeKey, "none")
+                .startSpan();
+    try {
+      assertThat(span.getSpanContext().isSampled()).isTrue();
+      assertThat(span.toSpanData().getAttributes().get(samplerAttributeKey)).isNotNull();
+      assertThat(span.toSpanData().getSpanContext().getTraceState())
+          .isEqualTo(TraceState.getDefault());
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void sampler_updatedTraceState() {
+    String samplerAttributeName = "sampler-attribute";
+    AttributeKey<String> samplerAttributeKey = stringKey(samplerAttributeName);
+    SdkSpan span =
+        (SdkSpan)
+            SdkTracerProvider.builder()
+                .setSampler(
+                    new Sampler() {
+                      @Override
+                      public SamplingResult shouldSample(
+                          Context parentContext,
+                          String traceId,
+                          String name,
+                          SpanKind spanKind,
+                          Attributes attributes,
+                          List<LinkData> parentLinks) {
+                        return new SamplingResult() {
+                          @Override
+                          public SamplingDecision getDecision() {
+                            return SamplingDecision.RECORD_AND_SAMPLE;
+                          }
+
+                          @Override
+                          public Attributes getAttributes() {
+                            return Attributes.empty();
+                          }
+
+                          @Override
+                          public TraceState getUpdatedTraceState(TraceState parentTraceState) {
+                            return parentTraceState.toBuilder().put("newkey", "newValue").build();
+                          }
+                        };
+                      }
+
+                      @Override
+                      public String getDescription() {
+                        return "test sampler";
+                      }
+                    })
+                .build()
+                .get("test")
+                .spanBuilder(SPAN_NAME)
+                .setAttribute(samplerAttributeKey, "none")
+                .startSpan();
+    try {
+      assertThat(span.getSpanContext().isSampled()).isTrue();
+      assertThat(span.toSpanData().getAttributes().get(samplerAttributeKey)).isNotNull();
+      assertThat(span.toSpanData().getSpanContext().getTraceState())
+          .isEqualTo(TraceState.builder().put("newkey", "newValue").build());
+    } finally {
+      span.end();
+    }
+  }
+
+  // TODO(anuraaga): Is this test correct? It's not sampled
+  @Test
+  void sampledViaParentLinks() {
+    Span span =
+        SdkTracerProvider.builder()
+            .setSampler(Sampler.alwaysOff())
+            .build()
+            .get("test")
+            .spanBuilder(SPAN_NAME)
+            .startSpan();
+    try {
+      assertThat(span.getSpanContext().isSampled()).isFalse();
+    } finally {
+      if (span != null) {
+        span.end();
+      }
+    }
+  }
+
+  @Test
+  void noParent() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try (Scope ignored = parent.makeCurrent()) {
+      Span span = sdkTracer.spanBuilder(SPAN_NAME).setNoParent().startSpan();
+      try {
+        assertThat(span.getSpanContext().getTraceId())
+            .isNotEqualTo(parent.getSpanContext().getTraceId());
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(Context.root()), Mockito.same((ReadWriteSpan) span));
+        Span spanNoParent =
+            sdkTracer
+                .spanBuilder(SPAN_NAME)
+                .setNoParent()
+                .setParent(Context.current())
+                .setNoParent()
+                .startSpan();
+        try {
+          assertThat(span.getSpanContext().getTraceId())
+              .isNotEqualTo(parent.getSpanContext().getTraceId());
+          Mockito.verify(mockedSpanProcessor)
+              .onStart(Mockito.same(Context.root()), Mockito.same((ReadWriteSpan) spanNoParent));
+        } finally {
+          spanNoParent.end();
+        }
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void noParent_override() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try {
+      Context parentContext = Context.current().with(parent);
+      SdkSpan span =
+          (SdkSpan)
+              sdkTracer.spanBuilder(SPAN_NAME).setNoParent().setParent(parentContext).startSpan();
+      try {
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(parentContext), Mockito.same((ReadWriteSpan) span));
+        assertThat(span.getSpanContext().getTraceId())
+            .isEqualTo(parent.getSpanContext().getTraceId());
+        assertThat(span.toSpanData().getParentSpanId())
+            .isEqualTo(parent.getSpanContext().getSpanId());
+
+        Context parentContext2 = Context.current().with(parent);
+        SdkSpan span2 =
+            (SdkSpan)
+                sdkTracer
+                    .spanBuilder(SPAN_NAME)
+                    .setNoParent()
+                    .setParent(parentContext2)
+                    .startSpan();
+        try {
+          Mockito.verify(mockedSpanProcessor)
+              .onStart(Mockito.same(parentContext2), Mockito.same((ReadWriteSpan) span2));
+          assertThat(span2.getSpanContext().getTraceId())
+              .isEqualTo(parent.getSpanContext().getTraceId());
+        } finally {
+          span2.end();
+        }
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void overrideNoParent_remoteParent() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try {
+
+      Context parentContext = Context.current().with(parent);
+      SdkSpan span =
+          (SdkSpan)
+              sdkTracer.spanBuilder(SPAN_NAME).setNoParent().setParent(parentContext).startSpan();
+      try {
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(parentContext), Mockito.same((ReadWriteSpan) span));
+        assertThat(span.getSpanContext().getTraceId())
+            .isEqualTo(parent.getSpanContext().getTraceId());
+        assertThat(span.toSpanData().getParentSpanId())
+            .isEqualTo(parent.getSpanContext().getSpanId());
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void parent_fromContext() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    Context context = Context.current().with(parent);
+    try {
+      SdkSpan span =
+          (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).setNoParent().setParent(context).startSpan();
+      try {
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(context), Mockito.same((ReadWriteSpan) span));
+        assertThat(span.getSpanContext().getTraceId())
+            .isEqualTo(parent.getSpanContext().getTraceId());
+        assertThat(span.toSpanData().getParentSpanId())
+            .isEqualTo(parent.getSpanContext().getSpanId());
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void parent_fromEmptyContext() {
+    Context emptyContext = Context.current();
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try {
+      SdkSpan span;
+      try (Scope scope = parent.makeCurrent()) {
+        span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).setParent(emptyContext).startSpan();
+      }
+
+      try {
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(emptyContext), Mockito.same((ReadWriteSpan) span));
+        assertThat(span.getSpanContext().getTraceId())
+            .isNotEqualTo(parent.getSpanContext().getTraceId());
+        assertThat(span.toSpanData().getParentSpanId())
+            .isNotEqualTo(parent.getSpanContext().getSpanId());
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void parentCurrentSpan() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try (Scope ignored = parent.makeCurrent()) {
+      Context implicitParent = Context.current();
+      SdkSpan span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+      try {
+        Mockito.verify(mockedSpanProcessor)
+            .onStart(Mockito.same(implicitParent), Mockito.same((ReadWriteSpan) span));
+        assertThat(span.getSpanContext().getTraceId())
+            .isEqualTo(parent.getSpanContext().getTraceId());
+        assertThat(span.toSpanData().getParentSpanId())
+            .isEqualTo(parent.getSpanContext().getSpanId());
+      } finally {
+        span.end();
+      }
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void parent_invalidContext() {
+    Span parent = Span.getInvalid();
+
+    Context parentContext = Context.current().with(parent);
+    SdkSpan span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).setParent(parentContext).startSpan();
+    try {
+      Mockito.verify(mockedSpanProcessor)
+          .onStart(
+              ArgumentMatchers.same(parentContext), ArgumentMatchers.same((ReadWriteSpan) span));
+      assertThat(span.getSpanContext().getTraceId())
+          .isNotEqualTo(parent.getSpanContext().getTraceId());
+      assertThat(SpanId.isValid(span.toSpanData().getParentSpanId())).isFalse();
+    } finally {
+      span.end();
+    }
+  }
+
+  @Test
+  void startTimestamp_numeric() {
+    SdkSpan span =
+        (SdkSpan)
+            sdkTracer
+                .spanBuilder(SPAN_NAME)
+                .setStartTimestamp(10, TimeUnit.NANOSECONDS)
+                .startSpan();
+    span.end();
+    assertThat(span.toSpanData().getStartEpochNanos()).isEqualTo(10);
+  }
+
+  @Test
+  void startTimestamp_instant() {
+    SdkSpan span =
+        (SdkSpan)
+            sdkTracer
+                .spanBuilder(SPAN_NAME)
+                .setStartTimestamp(Instant.ofEpochMilli(100))
+                .startSpan();
+    span.end();
+    assertThat(span.toSpanData().getStartEpochNanos())
+        .isEqualTo(TimeUnit.MILLISECONDS.toNanos(100));
+  }
+
+  @Test
+  void parent_clockIsSame() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try (Scope scope = parent.makeCurrent()) {
+      SdkSpan span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+
+      assertThat(span.getClock()).isSameAs(((SdkSpan) parent).getClock());
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void parentCurrentSpan_clockIsSame() {
+    Span parent = sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+    try (Scope ignored = parent.makeCurrent()) {
+      SdkSpan span = (SdkSpan) sdkTracer.spanBuilder(SPAN_NAME).startSpan();
+
+      assertThat(span.getClock()).isSameAs(((SdkSpan) parent).getClock());
+    } finally {
+      parent.end();
+    }
+  }
+
+  @Test
+  void isSampled() {
+    assertThat(SdkSpanBuilder.isSampled(SamplingDecision.DROP)).isFalse();
+    assertThat(SdkSpanBuilder.isSampled(SamplingDecision.RECORD_ONLY)).isFalse();
+    assertThat(SdkSpanBuilder.isSampled(SamplingDecision.RECORD_AND_SAMPLE)).isTrue();
+  }
+
+  @Test
+  void isRecording() {
+    assertThat(SdkSpanBuilder.isRecording(SamplingDecision.DROP)).isFalse();
+    assertThat(SdkSpanBuilder.isRecording(SamplingDecision.RECORD_ONLY)).isTrue();
+    assertThat(SdkSpanBuilder.isRecording(SamplingDecision.RECORD_AND_SAMPLE)).isTrue();
+  }
+
+  // SpanData is very commonly used in unit tests, we want the toString to make sure it's relatively
+  // easy to understand failure messages.
+  // TODO(anuraaga): Currently it isn't - we even return the same (or maybe incorrect?) stuff twice.
+  // Improve the toString.
+  @Test
+  void spanDataToString() {
+    SpanBuilder spanBuilder = sdkTracer.spanBuilder(SPAN_NAME);
+    SdkSpan span = (SdkSpan) spanBuilder.startSpan();
+    span.setAttribute("http.status_code", 500);
+    span.setAttribute("http.url", "https://opentelemetry.io");
+    span.setStatus(StatusCode.ERROR, "error");
+    span.end();
+
+    assertThat(span.toSpanData().toString())
+        .matches(
+            "SpanData\\{spanContext=ImmutableSpanContext\\{"
+                + "traceId=[0-9a-f]{32}, "
+                + "spanId=[0-9a-f]{16}, "
+                + "traceFlags=01, "
+                + "traceState=ArrayBasedTraceState\\{entries=\\[]}, remote=false, valid=true}, "
+                + "parentSpanContext=ImmutableSpanContext\\{"
+                + "traceId=00000000000000000000000000000000, "
+                + "spanId=0000000000000000, "
+                + "traceFlags=00, "
+                + "traceState=ArrayBasedTraceState\\{entries=\\[]}, remote=false, valid=false}, "
+                + "resource=Resource\\{schemaUrl=null, "
+                + "attributes=\\{service.name=\"unknown_service:java\", "
+                + "telemetry.sdk.language=\"java\", telemetry.sdk.name=\"opentelemetry\", "
+                + "telemetry.sdk.version=\"\\d+.\\d+.\\d+(-rc.\\d+)?(-SNAPSHOT)?\"}}, "
+                + "instrumentationScopeInfo=InstrumentationScopeInfo\\{"
+                + "name=SpanBuilderSdkTest, version=null, schemaUrl=null, attributes=\\{}}, "
+                + "name=span_name, "
+                + "kind=INTERNAL, "
+                + "startEpochNanos=[0-9]+, "
+                + "endEpochNanos=[0-9]+, "
+                + "attributes=AttributesMap\\{data=\\{[^}]*}, capacity=128, totalAddedValues=2}, "
+                + "totalAttributeCount=2, "
+                + "events=\\[], "
+                + "totalRecordedEvents=0, "
+                + "links=\\[], "
+                + "totalRecordedLinks=0, "
+                + "status=ImmutableStatusData\\{statusCode=ERROR, description=error}, "
+                + "hasEnded=true}");
+  }
+
+  @Test
+  void doNotCrash() {
+    assertThatCode(
+            () -> {
+              SpanBuilder spanBuilder = sdkTracer.spanBuilder(null);
+              spanBuilder.setSpanKind(null);
+              spanBuilder.setParent(null);
+              spanBuilder.setNoParent();
+              spanBuilder.addLink(null);
+              spanBuilder.addLink(null, Attributes.empty());
+              spanBuilder.addLink(SpanContext.getInvalid(), null);
+              spanBuilder.setAttribute((String) null, "foo");
+              spanBuilder.setAttribute("foo", null);
+              spanBuilder.setAttribute(null, 0L);
+              spanBuilder.setAttribute(null, 0.0);
+              spanBuilder.setAttribute(null, false);
+              spanBuilder.setAttribute((AttributeKey<String>) null, "foo");
+              spanBuilder.setAttribute(stringKey(null), "foo");
+              spanBuilder.setAttribute(stringKey(""), "foo");
+              spanBuilder.setAttribute(stringKey("foo"), null);
+              spanBuilder.setStartTimestamp(-1, TimeUnit.MILLISECONDS);
+              spanBuilder.setStartTimestamp(1, null);
+              spanBuilder.setParent(Context.root().with(Span.wrap(null)));
+              spanBuilder.setParent(Context.root());
+              spanBuilder.setNoParent();
+              spanBuilder.addLink(Span.getInvalid().getSpanContext());
+              spanBuilder.addLink(Span.getInvalid().getSpanContext(), Attributes.empty());
+              spanBuilder.setAttribute("key", "value");
+              spanBuilder.setAttribute("key", 12345L);
+              spanBuilder.setAttribute("key", .12345);
+              spanBuilder.setAttribute("key", true);
+              spanBuilder.setAttribute(stringKey("key"), "value");
+              spanBuilder.setAllAttributes(Attributes.of(stringKey("key"), "value"));
+              spanBuilder.setAllAttributes(Attributes.empty());
+              spanBuilder.setAllAttributes(null);
+              spanBuilder.setStartTimestamp(12345L, TimeUnit.NANOSECONDS);
+              spanBuilder.setStartTimestamp(Instant.EPOCH);
+              spanBuilder.setStartTimestamp(null);
+              assertThat(spanBuilder.startSpan().getSpanContext().isValid()).isTrue();
+            })
+        .doesNotThrowAnyException();
+  }
+}
