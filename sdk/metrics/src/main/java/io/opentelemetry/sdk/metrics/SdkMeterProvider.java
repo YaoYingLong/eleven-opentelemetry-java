@@ -58,18 +58,26 @@ public final class SdkMeterProvider implements MeterProvider, Closeable {
 
   SdkMeterProvider(List<RegisteredView> registeredViews, IdentityHashMap<MetricReader, CardinalityLimitSelector> metricReaders,
       List<MetricProducer> metricProducers, Clock clock, Resource resource, ExemplarFilter exemplarFilter) {
-    long startEpochNanos = clock.now();
+    long startEpochNanos = clock.now();   // 调用SystemClock.now()其实就是获取当前时间戳
     this.registeredViews = registeredViews;
+    // 这里进行了一次封装，其实就是将PeriodicMetricReader和新生成的ViewRegistry封装到RegisteredReader
     this.registeredReaders = metricReaders.entrySet().stream().map(entry ->
             RegisteredReader.create(entry.getKey(), ViewRegistry.create(entry.getKey(), entry.getValue(), registeredViews)))
             .collect(toList());
+    // 传入的metricProducers是一个空列表
     this.metricProducers = metricProducers;
+    // clock传入的是SystemClock，exemplarFilter传入的一般默认为TraceBasedExemplarFilter
     this.sharedState = MeterProviderSharedState.create(clock, resource, exemplarFilter, startEpochNanos);
     this.registry = new ComponentRegistry<>(instrumentationLibraryInfo -> new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders));
     for (RegisteredReader registeredReader : registeredReaders) {
       List<MetricProducer> readerMetricProducers = new ArrayList<>(metricProducers);
+      // 这里的MetricProducer是LeasedMetricProducer
       readerMetricProducers.add(new LeasedMetricProducer(registry, sharedState, registeredReader));
-      // 这里比较重要，确定了PeriodicMetricReader中持有的CollectionRegistration为SdkCollectionRegistration
+      /**
+       * 这里比较重要，确定了PeriodicMetricReader中持有的CollectionRegistration为SdkCollectionRegistration
+       * 且这里调用RegisteredReader的getReader获取到的是PeriodicMetricReader，这里实际是调用的PeriodicMetricReader的register
+       * register方法中启动周期执行任务
+       */
       registeredReader.getReader().register(new SdkCollectionRegistration(readerMetricProducers, sharedState));
       registeredReader.setLastCollectEpochNanos(startEpochNanos);
     }
@@ -186,8 +194,7 @@ public final class SdkMeterProvider implements MeterProvider, Closeable {
     private final List<MetricProducer> metricProducers;
     private final MeterProviderSharedState sharedState;
 
-    private SdkCollectionRegistration(
-        List<MetricProducer> metricProducers, MeterProviderSharedState sharedState) {
+    private SdkCollectionRegistration(List<MetricProducer> metricProducers, MeterProviderSharedState sharedState) {
       this.metricProducers = metricProducers;
       this.sharedState = sharedState;
     }

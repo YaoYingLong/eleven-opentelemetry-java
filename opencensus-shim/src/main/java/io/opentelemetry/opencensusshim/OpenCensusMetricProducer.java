@@ -41,13 +41,7 @@ public final class OpenCensusMetricProducer implements MetricProducer {
   @Override
   public Collection<MetricData> produce(Resource resource) {
     List<MetricData> result = new ArrayList<>();
-    openCensusMetricStorage
-        .getAllMetricProducer()
-        .forEach(
-            producer ->
-                producer
-                    .getMetrics()
-                    .forEach(metric -> result.add(MetricAdapter.convert(resource, metric))));
+    openCensusMetricStorage.getAllMetricProducer().forEach(producer -> producer.getMetrics().forEach(metric -> result.add(MetricAdapter.convert(resource, metric))));
     return result;
   }
 }

@@ -36,8 +36,7 @@ public abstract class InstrumentSelector {
       @Nullable String meterName,
       @Nullable String meterVersion,
       @Nullable String meterSchemaUrl) {
-    return new AutoValue_InstrumentSelector(
-        instrumentType, instrumentName, instrumentUnit, meterName, meterVersion, meterSchemaUrl);
+    return new AutoValue_InstrumentSelector(instrumentType, instrumentName, instrumentUnit, meterName, meterVersion, meterSchemaUrl);
   }
 
   InstrumentSelector() {}

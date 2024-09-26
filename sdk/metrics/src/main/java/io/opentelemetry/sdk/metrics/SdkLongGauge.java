@@ -76,6 +76,9 @@ final class SdkLongGauge extends AbstractInstrument implements LongGauge {
       return this;
     }
 
+    /**
+     * 该方法SdkLongGaugeBuilder调用过来的，SdkLongGauge是齐父类
+     */
     @Override
     public ObservableLongGauge buildWithCallback(Consumer<ObservableLongMeasurement> callback) {
       // TODO: use InstrumentType.GAUGE when available

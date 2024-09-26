@@ -93,15 +93,13 @@ abstract class AbstractInstrumentBuilder<BuilderT extends AbstractInstrumentBuil
         adviceBuilder);
   }
 
-  final <I extends AbstractInstrument> I buildSynchronousInstrument(
-      BiFunction<InstrumentDescriptor, WriteableMetricStorage, I> instrumentFactory) {
+  final <I extends AbstractInstrument> I buildSynchronousInstrument(BiFunction<InstrumentDescriptor, WriteableMetricStorage, I> instrumentFactory) {
     InstrumentDescriptor descriptor = InstrumentDescriptor.create(instrumentName, description, unit, type, valueType, adviceBuilder.build());
     WriteableMetricStorage storage = meterSharedState.registerSynchronousMetricStorage(descriptor, meterProviderSharedState);
     return instrumentFactory.apply(descriptor, storage);
   }
 
-  final SdkObservableInstrument registerDoubleAsynchronousInstrument(
-      InstrumentType type, Consumer<ObservableDoubleMeasurement> updater) {
+  final SdkObservableInstrument registerDoubleAsynchronousInstrument(InstrumentType type, Consumer<ObservableDoubleMeasurement> updater) {
     SdkObservableMeasurement sdkObservableMeasurement = buildObservableMeasurement(type);
     Runnable runnable = () -> updater.accept(sdkObservableMeasurement);
     CallbackRegistration callbackRegistration =
@@ -110,15 +108,24 @@ abstract class AbstractInstrumentBuilder<BuilderT extends AbstractInstrumentBuil
     return new SdkObservableInstrument(meterSharedState, callbackRegistration);
   }
 
-  final SdkObservableInstrument registerLongAsynchronousInstrument(
-      InstrumentType type, Consumer<ObservableLongMeasurement> updater) {
+  /**
+   * 通过Worker构造方法掉过来传入的InstrumentType为InstrumentType.OBSERVABLE_GAUGE
+   * updater为：result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)
+   */
+  final SdkObservableInstrument registerLongAsynchronousInstrument(InstrumentType type, Consumer<ObservableLongMeasurement> updater) {
     SdkObservableMeasurement sdkObservableMeasurement = buildObservableMeasurement(type);
+    // 将从Worker传进来的result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)封装到线程中
     Runnable runnable = () -> updater.accept(sdkObservableMeasurement);
+    // 在CallbackRegistration的invokeCallback中会调用Runnable的run方法
     CallbackRegistration callbackRegistration = CallbackRegistration.create(Collections.singletonList(sdkObservableMeasurement), runnable);
+    // 将生成的callbackRegistration注册到meterSharedState中
     meterSharedState.registerCallback(callbackRegistration);
     return new SdkObservableInstrument(meterSharedState, callbackRegistration);
   }
 
+  /**
+   * 该类是SdkLongGaugeBuilder的父类，instrumentName, description, unit等数据都是之前已经设置过的
+   */
   final SdkObservableMeasurement buildObservableMeasurement(InstrumentType type) {
     InstrumentDescriptor descriptor = InstrumentDescriptor.create(instrumentName, description, unit, type, valueType, adviceBuilder.build());
     return meterSharedState.registerObservableMeasurement(descriptor);

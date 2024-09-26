@@ -45,12 +45,9 @@ public final class BatchSpanProcessor implements SpanProcessor {
 
   private static final Logger logger = Logger.getLogger(BatchSpanProcessor.class.getName());
 
-  private static final String WORKER_THREAD_NAME =
-      BatchSpanProcessor.class.getSimpleName() + "_WorkerThread";
-  private static final AttributeKey<String> SPAN_PROCESSOR_TYPE_LABEL =
-      AttributeKey.stringKey("processorType");
-  private static final AttributeKey<Boolean> SPAN_PROCESSOR_DROPPED_LABEL =
-      AttributeKey.booleanKey("dropped");
+  private static final String WORKER_THREAD_NAME = BatchSpanProcessor.class.getSimpleName() + "_WorkerThread";
+  private static final AttributeKey<String> SPAN_PROCESSOR_TYPE_LABEL = AttributeKey.stringKey("processorType");
+  private static final AttributeKey<Boolean> SPAN_PROCESSOR_DROPPED_LABEL = AttributeKey.booleanKey("dropped");
   private static final String SPAN_PROCESSOR_TYPE_VALUE = BatchSpanProcessor.class.getSimpleName();
 
   private final Worker worker;
@@ -67,15 +64,13 @@ public final class BatchSpanProcessor implements SpanProcessor {
     return new BatchSpanProcessorBuilder(spanExporter);
   }
 
-  BatchSpanProcessor(
-      SpanExporter spanExporter,
+  BatchSpanProcessor(SpanExporter spanExporter,
       MeterProvider meterProvider,
       long scheduleDelayNanos,
       int maxQueueSize,
       int maxExportBatchSize,
       long exporterTimeoutNanos) {
-    this.worker =
-        new Worker(
+    this.worker = new Worker(
             spanExporter,
             meterProvider,
             scheduleDelayNanos,
@@ -173,8 +168,7 @@ public final class BatchSpanProcessor implements SpanProcessor {
     private volatile boolean continueWork = true;
     private final ArrayList<SpanData> batch;
 
-    private Worker(
-        SpanExporter spanExporter,
+    private Worker(SpanExporter spanExporter,
         MeterProvider meterProvider,
         long scheduleDelayNanos,
         int maxExportBatchSize,
@@ -186,12 +180,15 @@ public final class BatchSpanProcessor implements SpanProcessor {
       this.exporterTimeoutNanos = exporterTimeoutNanos;
       this.queue = queue;
       this.signal = new ArrayBlockingQueue<>(1);
-      // Meter默认是SdkMeter
+      // Meter默认是SdkMeter（在SdkMeterProvider构造方法中被设置）, meterProvider默认是SdkMeterProvider
+      // build调用获取的内容是SdkMeterProvider构造方法设置的: new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders)
       Meter meter = meterProvider.meterBuilder("io.opentelemetry.sdk.trace").build();
       meter.gaugeBuilder("queueSize")  // 通过SdkMeter构建返回SdkDoubleGaugeBuilder
-          .ofLongs()    // 构建返回LongGaugeBuilder
-          .setDescription("The number of items queued")
-          .setUnit("1")
+          .ofLongs()    // 调用SdkDoubleGaugeBuilder构建返回SdkLongGaugeBuilder
+          .setDescription("The number of items queued") // 这里是调用AbstractInstrumentBuilder的setDescription方法
+          .setUnit("1") // 这里是调用AbstractInstrumentBuilder的setUnit方法
+          // 构建异步instrument，调用SdkLongGaugeBuilder的buildWithCallback
+          // 这里Attributes.of构造的其实是：processorType：batchSpanProcessor
           .buildWithCallback(result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)));
       processedSpansCounter = meter.counterBuilder("processedSpans")  // 构建LongCounterBuilder
           .setUnit("1")

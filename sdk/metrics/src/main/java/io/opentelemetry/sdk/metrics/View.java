@@ -28,14 +28,9 @@ public abstract class View {
     return new ViewBuilder();
   }
 
-  static View create(
-      @Nullable String name,
-      @Nullable String description,
-      Aggregation aggregation,
-      AttributesProcessor attributesProcessor,
-      int cardinalityLimit) {
-    return new AutoValue_View(
-        name, description, aggregation, attributesProcessor, cardinalityLimit);
+  static View create(@Nullable String name, @Nullable String description, Aggregation aggregation,
+      AttributesProcessor attributesProcessor, int cardinalityLimit) {
+    return new AutoValue_View(name, description, aggregation, attributesProcessor, cardinalityLimit);
   }
 
   View() {}

@@ -52,20 +52,30 @@ public final class ViewRegistry {
           SourceInfo.noSourceInfo());
   private static final Logger logger = Logger.getLogger(ViewRegistry.class.getName());
 
+  /**
+   * InstrumentType是一个枚举类型，主要定义的是指标工具类别：
+   *   COUNTER
+   *   UP_DOWN_COUNTER
+   *   HISTOGRAM
+   *   OBSERVABLE_COUNTER
+   *   OBSERVABLE_UP_DOWN_COUNTER
+   *   OBSERVABLE_GAUGE
+   */
   private final Map<InstrumentType, RegisteredView> instrumentDefaultRegisteredView;
   private final List<RegisteredView> registeredViews;
 
-  ViewRegistry(
-      DefaultAggregationSelector defaultAggregationSelector,
+  ViewRegistry(DefaultAggregationSelector defaultAggregationSelector,
       CardinalityLimitSelector cardinalityLimitSelector,
       List<RegisteredView> registeredViews) {
     instrumentDefaultRegisteredView = new HashMap<>();
+    // 将所有的指标工具类型都添加到instrumentDefaultRegisteredView
     for (InstrumentType instrumentType : InstrumentType.values()) {
       instrumentDefaultRegisteredView.put(
           instrumentType,
           RegisteredView.create(
               InstrumentSelector.builder().setName("*").build(),
               View.builder()
+                  // 这里其实是调用的PeriodicMetricReader的getDefaultAggregation,这里应该是得到的DefaultAggregation
                   .setAggregation(defaultAggregationSelector.getDefaultAggregation(instrumentType))
                   .build(),
               AttributesProcessor.noop(),
@@ -76,10 +86,14 @@ public final class ViewRegistry {
   }
 
   /** Returns a {@link ViewRegistry}. */
-  public static ViewRegistry create(
-      DefaultAggregationSelector defaultAggregationSelector,
+  public static ViewRegistry create(DefaultAggregationSelector defaultAggregationSelector,
       CardinalityLimitSelector cardinalityLimitSelector,
       List<RegisteredView> registeredViews) {
+    /**
+     * 这里传入的DefaultAggregationSelector实际是子类PeriodicMetricReader
+     * CardinalityLimitSelector是默认值为2000的函数表达式
+     * registeredViews这个从代码上来看是通过解析配置文件加载进来的
+     */
     return new ViewRegistry(defaultAggregationSelector, cardinalityLimitSelector, new ArrayList<>(registeredViews));
   }
 
@@ -97,61 +111,38 @@ public final class ViewRegistry {
    * @param descriptor description of the instrument.
    * @return The list of {@link View}s for this instrument, or a default view.
    */
-  public List<RegisteredView> findViews(
-      InstrumentDescriptor descriptor, InstrumentationScopeInfo meterScope) {
+  public List<RegisteredView> findViews(InstrumentDescriptor descriptor, InstrumentationScopeInfo meterScope) {
     List<RegisteredView> result = new ArrayList<>();
     // Find matching views for the instrument
     for (RegisteredView entry : registeredViews) {
       if (matchesSelector(entry.getInstrumentSelector(), descriptor, meterScope)) {
-        AggregatorFactory viewAggregatorFactory =
-            (AggregatorFactory) entry.getView().getAggregation();
+        AggregatorFactory viewAggregatorFactory = (AggregatorFactory) entry.getView().getAggregation();
         if (viewAggregatorFactory.isCompatibleWithInstrument(descriptor)) {
           result.add(entry);
         } else {
-          logger.log(
-              Level.WARNING,
-              "View aggregation "
-                  + AggregationUtil.aggregationName(entry.getView().getAggregation())
-                  + " is incompatible with instrument "
-                  + descriptor.getName()
-                  + " of type "
-                  + descriptor.getType());
+          logger.log(Level.WARNING, "View aggregation " + AggregationUtil.aggregationName(entry.getView().getAggregation())
+                  + " is incompatible with instrument " + descriptor.getName() + " of type " + descriptor.getType());
         }
       }
     }
-
     // If a view matched, return it
     if (!result.isEmpty()) {
       return Collections.unmodifiableList(result);
     }
-
     // No views matched, use default view
-    RegisteredView instrumentDefaultView =
-        requireNonNull(instrumentDefaultRegisteredView.get(descriptor.getType()));
-
-    AggregatorFactory viewAggregatorFactory =
-        (AggregatorFactory) instrumentDefaultView.getView().getAggregation();
-
+    RegisteredView instrumentDefaultView = requireNonNull(instrumentDefaultRegisteredView.get(descriptor.getType()));
+    AggregatorFactory viewAggregatorFactory = (AggregatorFactory) instrumentDefaultView.getView().getAggregation();
     if (!viewAggregatorFactory.isCompatibleWithInstrument(descriptor)) {
       // The aggregation from default aggregation selector was incompatible with instrument, use
       // default aggregation instead
-      logger.log(
-          Level.WARNING,
-          "Instrument default aggregation "
-              + AggregationUtil.aggregationName(instrumentDefaultView.getView().getAggregation())
-              + " is incompatible with instrument "
-              + descriptor.getName()
-              + " of type "
-              + descriptor.getType());
+      logger.log(Level.WARNING, "Instrument default aggregation " + AggregationUtil.aggregationName(instrumentDefaultView.getView().getAggregation())
+              + " is incompatible with instrument " + descriptor.getName() + " of type " + descriptor.getType());
       instrumentDefaultView = DEFAULT_REGISTERED_VIEW;
     }
-
     // if the user defined an attributes advice, use it
     if (descriptor.getAdvice().hasAttributes()) {
-      instrumentDefaultView =
-          applyAdviceToDefaultView(instrumentDefaultView, descriptor.getAdvice());
+      instrumentDefaultView = applyAdviceToDefaultView(instrumentDefaultView, descriptor.getAdvice());
     }
-
     return Collections.singletonList(instrumentDefaultView);
   }
 
@@ -160,16 +151,13 @@ public final class ViewRegistry {
       InstrumentSelector selector,
       InstrumentDescriptor descriptor,
       InstrumentationScopeInfo meterScope) {
-    if (selector.getInstrumentType() != null
-        && selector.getInstrumentType() != descriptor.getType()) {
+    if (selector.getInstrumentType() != null && selector.getInstrumentType() != descriptor.getType()) {
       return false;
     }
-    if (selector.getInstrumentUnit() != null
-        && !selector.getInstrumentUnit().equals(descriptor.getUnit())) {
+    if (selector.getInstrumentUnit() != null && !selector.getInstrumentUnit().equals(descriptor.getUnit())) {
       return false;
     }
-    if (selector.getInstrumentName() != null
-        && !toGlobPatternPredicate(selector.getInstrumentName()).test(descriptor.getName())) {
+    if (selector.getInstrumentName() != null && !toGlobPatternPredicate(selector.getInstrumentName()).test(descriptor.getName())) {
       return false;
     }
     return matchesMeter(selector, meterScope);

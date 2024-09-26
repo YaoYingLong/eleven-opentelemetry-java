@@ -84,15 +84,13 @@ public final class InstrumentSelectorBuilder {
 
   /** Returns an {@link InstrumentSelector} with the configuration of this builder. */
   public InstrumentSelector build() {
-    checkArgument(
-        instrumentType != null
+    checkArgument(instrumentType != null
             || instrumentName != null
             || instrumentUnit != null
             || meterName != null
             || meterVersion != null
             || meterSchemaUrl != null,
         "Instrument selector must contain selection criteria");
-    return InstrumentSelector.create(
-        instrumentType, instrumentName, instrumentUnit, meterName, meterVersion, meterSchemaUrl);
+    return InstrumentSelector.create(instrumentType, instrumentName, instrumentUnit, meterName, meterVersion, meterSchemaUrl);
   }
 }

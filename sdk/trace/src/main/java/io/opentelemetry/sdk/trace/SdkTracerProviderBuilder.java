@@ -153,8 +153,7 @@ public final class SdkTracerProviderBuilder {
    * @return The instance.
    */
   public SdkTracerProvider build() {
-    return new SdkTracerProvider(
-        clock, idsGenerator, resource, spanLimitsSupplier, sampler, spanProcessors);
+    return new SdkTracerProvider(clock, idsGenerator, resource, spanLimitsSupplier, sampler, spanProcessors);
   }
 
   SdkTracerProviderBuilder() {}

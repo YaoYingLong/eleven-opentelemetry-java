@@ -25,27 +25,21 @@ public final class ViewConfigCustomizer implements AutoConfigurationCustomizerPr
   }
 
   // Visible for testing
-  static SdkMeterProviderBuilder customizeMeterProvider(
-      SdkMeterProviderBuilder meterProviderBuilder, ConfigProperties configProperties) {
-    List<String> configFileLocations =
-        configProperties.getList("otel.experimental.metrics.view.config");
+  static SdkMeterProviderBuilder customizeMeterProvider(SdkMeterProviderBuilder meterProviderBuilder, ConfigProperties configProperties) {
+    List<String> configFileLocations = configProperties.getList("otel.experimental.metrics.view.config");
     for (String configFileLocation : configFileLocations) {
       if (configFileLocation.startsWith("classpath:")) {
         String classpathLocation = configFileLocation.substring("classpath:".length());
-        try (InputStream inputStream =
-            ViewConfigCustomizer.class.getResourceAsStream(classpathLocation)) {
+        try (InputStream inputStream = ViewConfigCustomizer.class.getResourceAsStream(classpathLocation)) {
           if (inputStream == null) {
-            throw new ConfigurationException(
-                "Resource "
+            throw new ConfigurationException("Resource "
                     + classpathLocation
                     + " not found on classpath of classloader "
                     + ViewConfigCustomizer.class.getClassLoader().getClass().getName());
           }
           ViewConfig.registerViews(meterProviderBuilder, inputStream);
         } catch (IOException e) {
-          throw new ConfigurationException(
-              "An error occurred reading view config resource on classpath: " + classpathLocation,
-              e);
+          throw new ConfigurationException("An error occurred reading view config resource on classpath: " + classpathLocation, e);
         }
       } else {
         try (FileInputStream fileInputStream = new FileInputStream(configFileLocation)) {

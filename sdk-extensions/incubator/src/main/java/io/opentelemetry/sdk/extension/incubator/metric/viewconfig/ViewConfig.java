@@ -82,8 +82,7 @@ public final class ViewConfig {
    *
    * @throws ConfigurationException if unable to interpret {@code inputStream} contents
    */
-  public static void registerViews(
-      SdkMeterProviderBuilder meterProviderBuilder, InputStream inputStream) {
+  public static void registerViews(SdkMeterProviderBuilder meterProviderBuilder, InputStream inputStream) {
     List<ViewConfigSpecification> viewConfigSpecs = loadViewConfig(inputStream);
 
     for (ViewConfigSpecification viewConfigSpec : viewConfigSpecs) {

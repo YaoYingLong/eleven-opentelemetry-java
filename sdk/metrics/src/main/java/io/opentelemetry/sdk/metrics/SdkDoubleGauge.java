@@ -42,10 +42,7 @@ final class SdkDoubleGauge extends AbstractInstrument implements DoubleGauge {
   static final class SdkDoubleGaugeBuilder extends AbstractInstrumentBuilder<SdkDoubleGaugeBuilder>
       implements ExtendedDoubleGaugeBuilder {
 
-    SdkDoubleGaugeBuilder(
-        MeterProviderSharedState meterProviderSharedState,
-        MeterSharedState meterSharedState,
-        String name) {
+    SdkDoubleGaugeBuilder(MeterProviderSharedState meterProviderSharedState, MeterSharedState meterSharedState, String name) {
       super(
           meterProviderSharedState,
           meterSharedState,

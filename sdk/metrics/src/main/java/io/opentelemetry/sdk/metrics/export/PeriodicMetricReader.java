@@ -82,6 +82,7 @@ public final class PeriodicMetricReader implements MetricReader {
 
   @Override
   public CompletableResultCode forceFlush() {
+    // 执行一次导出操作
     return scheduled.doRun();
   }
 

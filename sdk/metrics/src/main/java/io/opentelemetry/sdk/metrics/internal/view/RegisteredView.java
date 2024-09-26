@@ -21,31 +21,42 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public abstract class RegisteredView {
 
-  public static RegisteredView create(
-      InstrumentSelector selector,
-      View view,
-      AttributesProcessor viewAttributesProcessor,
-      int cardinalityLimit,
+  public static RegisteredView create(InstrumentSelector selector, View view,
+      AttributesProcessor viewAttributesProcessor, int cardinalityLimit,
       SourceInfo viewSourceInfo) {
-    return new AutoValue_RegisteredView(
-        selector, view, viewAttributesProcessor, cardinalityLimit, viewSourceInfo);
+    return new AutoValue_RegisteredView(selector, view, viewAttributesProcessor, cardinalityLimit, viewSourceInfo);
   }
 
   RegisteredView() {}
 
-  /** Instrument filter for applying this view. */
+  /**
+   * Instrument filter for applying this view.
+   * 仅将名称设置为*的InstrumentSelector，其他属性都没有设置DefaultAggregation
+   */
   public abstract InstrumentSelector getInstrumentSelector();
 
-  /** The view to apply. */
+  /**
+   * The view to apply.
+   * 默认设置的是将Aggregation属性设置为
+   */
   public abstract View getView();
 
-  /** The view's {@link AttributesProcessor}. */
+  /**
+   * The view's {@link AttributesProcessor}.
+   * 默认设置进来的是NoopAttributesProcessor
+   */
   public abstract AttributesProcessor getViewAttributesProcessor();
 
-  /** The view's cardinality limit. */
+  /**
+   * The view's cardinality limit.
+   * 默认值为2000
+   */
   public abstract int getCardinalityLimit();
 
-  /** The {@link SourceInfo} from where the view was registered. */
+  /**
+   * The {@link SourceInfo} from where the view was registered.
+   * 默认设置的NoSourceInfo.INSTANCE
+   */
   public abstract SourceInfo getViewSourceInfo();
 
   @Override

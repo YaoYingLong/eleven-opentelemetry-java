@@ -106,11 +106,8 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       RegisteredView registeredView,
       InstrumentDescriptor instrumentDescriptor) {
     View view = registeredView.getView();
-    MetricDescriptor metricDescriptor =
-        MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
-    Aggregator<T, U> aggregator =
-        ((AggregatorFactory) view.getAggregation())
-            .createAggregator(instrumentDescriptor, ExemplarFilter.alwaysOff());
+    MetricDescriptor metricDescriptor = MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
+    Aggregator<T, U> aggregator = ((AggregatorFactory) view.getAggregation()).createAggregator(instrumentDescriptor, ExemplarFilter.alwaysOff());
     return new AsynchronousMetricStorage<>(
         registeredReader,
         metricDescriptor,
@@ -180,11 +177,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
   }
 
   @Override
-  public MetricData collect(
-      Resource resource,
-      InstrumentationScopeInfo instrumentationScopeInfo,
-      long startEpochNanos,
-      long epochNanos) {
+  public MetricData collect(Resource resource, InstrumentationScopeInfo instrumentationScopeInfo, long startEpochNanos, long epochNanos) {
     if (memoryMode == REUSABLE_DATA) {
       // Collect can not run concurrently for same reader, hence we safely assume
       // the previous collect result has been used and done with
@@ -253,8 +246,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       }
     }
 
-    return aggregator.toMetricData(
-        resource, instrumentationScopeInfo, metricDescriptor, result, aggregationTemporality);
+    return aggregator.toMetricData(resource, instrumentationScopeInfo, metricDescriptor, result, aggregationTemporality);
   }
 
   @Override

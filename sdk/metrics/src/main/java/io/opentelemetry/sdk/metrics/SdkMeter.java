@@ -56,8 +56,7 @@ final class SdkMeter implements Meter {
   private final MeterProviderSharedState meterProviderSharedState;
   private final MeterSharedState meterSharedState;
 
-  SdkMeter(
-      MeterProviderSharedState meterProviderSharedState,
+  SdkMeter(MeterProviderSharedState meterProviderSharedState,
       InstrumentationScopeInfo instrumentationScopeInfo,
       List<RegisteredReader> registeredReaders) {
     this.instrumentationScopeInfo = instrumentationScopeInfo;
@@ -82,39 +81,31 @@ final class SdkMeter implements Meter {
 
   @Override
   public LongCounterBuilder counterBuilder(String name) {
-    return !checkValidInstrumentName(name)
-        ? NOOP_METER.counterBuilder(NOOP_INSTRUMENT_NAME)
+    return !checkValidInstrumentName(name) ? NOOP_METER.counterBuilder(NOOP_INSTRUMENT_NAME)
         : new SdkLongCounter.SdkLongCounterBuilder(meterProviderSharedState, meterSharedState, name);
   }
 
   @Override
   public LongUpDownCounterBuilder upDownCounterBuilder(String name) {
-    return !checkValidInstrumentName(name)
-        ? NOOP_METER.upDownCounterBuilder(NOOP_INSTRUMENT_NAME)
-        : new SdkLongUpDownCounter.SdkLongUpDownCounterBuilder(
-            meterProviderSharedState, meterSharedState, name);
+    return !checkValidInstrumentName(name) ? NOOP_METER.upDownCounterBuilder(NOOP_INSTRUMENT_NAME)
+        : new SdkLongUpDownCounter.SdkLongUpDownCounterBuilder(meterProviderSharedState, meterSharedState, name);
   }
 
   @Override
   public DoubleHistogramBuilder histogramBuilder(String name) {
-    return !checkValidInstrumentName(name)
-        ? NOOP_METER.histogramBuilder(NOOP_INSTRUMENT_NAME)
-        : new SdkDoubleHistogram.SdkDoubleHistogramBuilder(
-            meterProviderSharedState, meterSharedState, name);
+    return !checkValidInstrumentName(name) ? NOOP_METER.histogramBuilder(NOOP_INSTRUMENT_NAME)
+        : new SdkDoubleHistogram.SdkDoubleHistogramBuilder(meterProviderSharedState, meterSharedState, name);
   }
 
   @Override
   public DoubleGaugeBuilder gaugeBuilder(String name) {
-    return !checkValidInstrumentName(name)
-        ? NOOP_METER.gaugeBuilder(NOOP_INSTRUMENT_NAME)
+    return !checkValidInstrumentName(name) ? NOOP_METER.gaugeBuilder(NOOP_INSTRUMENT_NAME)
         : new SdkDoubleGauge.SdkDoubleGaugeBuilder(meterProviderSharedState, meterSharedState, name);
   }
 
+  // 批量注册异步方法
   @Override
-  public BatchCallback batchCallback(
-      Runnable callback,
-      ObservableMeasurement observableMeasurement,
-      ObservableMeasurement... additionalMeasurements) {
+  public BatchCallback batchCallback(Runnable callback, ObservableMeasurement observableMeasurement, ObservableMeasurement... additionalMeasurements) {
     Set<ObservableMeasurement> measurements = new HashSet<>();
     measurements.add(observableMeasurement);
     Collections.addAll(measurements, additionalMeasurements);
@@ -122,25 +113,18 @@ final class SdkMeter implements Meter {
     List<SdkObservableMeasurement> sdkMeasurements = new ArrayList<>();
     for (ObservableMeasurement measurement : measurements) {
       if (!(measurement instanceof SdkObservableMeasurement)) {
-        logger.log(
-            Level.WARNING,
-            "batchCallback called with instruments that were not created by the SDK.");
+        logger.log(Level.WARNING, "batchCallback called with instruments that were not created by the SDK.");
         continue;
       }
       SdkObservableMeasurement sdkMeasurement = (SdkObservableMeasurement) measurement;
-      if (!meterSharedState
-          .getInstrumentationScopeInfo()
-          .equals(sdkMeasurement.getInstrumentationScopeInfo())) {
-        logger.log(
-            Level.WARNING,
-            "batchCallback called with instruments that belong to a different Meter.");
+      if (!meterSharedState.getInstrumentationScopeInfo().equals(sdkMeasurement.getInstrumentationScopeInfo())) {
+        logger.log(Level.WARNING, "batchCallback called with instruments that belong to a different Meter.");
         continue;
       }
       sdkMeasurements.add(sdkMeasurement);
     }
 
-    CallbackRegistration callbackRegistration =
-        CallbackRegistration.create(sdkMeasurements, callback);
+    CallbackRegistration callbackRegistration = CallbackRegistration.create(sdkMeasurements, callback);
     meterSharedState.registerCallback(callbackRegistration);
     return new SdkObservableInstrument(meterSharedState, callbackRegistration);
   }

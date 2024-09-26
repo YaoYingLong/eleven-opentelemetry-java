@@ -30,19 +30,16 @@ public final class CallbackRegistration {
   private final List<InstrumentDescriptor> instrumentDescriptors;
   private final boolean hasStorages;
 
-  private CallbackRegistration(
-      List<SdkObservableMeasurement> observableMeasurements, Runnable callback) {
+  private CallbackRegistration(List<SdkObservableMeasurement> observableMeasurements, Runnable callback) {
     this.observableMeasurements = observableMeasurements;
     this.callback = callback;
-    this.instrumentDescriptors =
-        observableMeasurements.stream()
+    this.instrumentDescriptors = observableMeasurements.stream()
             .map(SdkObservableMeasurement::getInstrumentDescriptor)
             .collect(toList());
     if (instrumentDescriptors.size() == 0) {
       throw new IllegalStateException("Callback with no instruments is not allowed");
     }
-    this.hasStorages =
-        observableMeasurements.stream()
+    this.hasStorages = observableMeasurements.stream()
             .flatMap(measurement -> measurement.getStorages().stream())
             .findAny()
             .isPresent();
@@ -60,8 +57,7 @@ public final class CallbackRegistration {
    * @param runnable the callback
    * @return the callback registration
    */
-  public static CallbackRegistration create(
-      List<SdkObservableMeasurement> observableMeasurements, Runnable runnable) {
+  public static CallbackRegistration create(List<SdkObservableMeasurement> observableMeasurements, Runnable runnable) {
     return new CallbackRegistration(observableMeasurements, runnable);
   }
 
@@ -77,15 +73,12 @@ public final class CallbackRegistration {
     }
     // Set the active reader on each observable measurement so that measurements are only recorded
     // to relevant storages
-    observableMeasurements.forEach(
-        observableMeasurement ->
-            observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
+    observableMeasurements.forEach(observableMeasurement -> observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
     try {
       callback.run();
     } catch (Throwable e) {
       propagateIfFatal(e);
-      throttlingLogger.log(
-          Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
+      throttlingLogger.log(Level.WARNING, "An exception occurred invoking callback for " + this + ".", e);
     } finally {
       observableMeasurements.forEach(SdkObservableMeasurement::unsetActiveReader);
     }

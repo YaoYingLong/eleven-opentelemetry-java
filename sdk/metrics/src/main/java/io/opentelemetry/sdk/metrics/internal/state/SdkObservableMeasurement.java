@@ -47,8 +47,7 @@ public final class SdkObservableMeasurement
   private volatile long startEpochNanos;
   private volatile long epochNanos;
 
-  private SdkObservableMeasurement(
-      InstrumentationScopeInfo instrumentationScopeInfo,
+  private SdkObservableMeasurement(InstrumentationScopeInfo instrumentationScopeInfo,
       InstrumentDescriptor instrumentDescriptor,
       List<AsynchronousMetricStorage<?, ?>> storages) {
     this.instrumentationScopeInfo = instrumentationScopeInfo;

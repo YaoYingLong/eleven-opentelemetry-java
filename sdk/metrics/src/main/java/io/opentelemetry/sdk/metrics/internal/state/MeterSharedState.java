@@ -82,10 +82,7 @@ public class MeterSharedState {
   }
 
   /** Collects all metrics. */
-  public List<MetricData> collectAll(
-      RegisteredReader registeredReader,
-      MeterProviderSharedState meterProviderSharedState,
-      long epochNanos) {
+  public List<MetricData> collectAll(RegisteredReader registeredReader, MeterProviderSharedState meterProviderSharedState, long epochNanos) {
     List<CallbackRegistration> currentRegisteredCallbacks;
     synchronized (callbackLock) {
       currentRegisteredCallbacks = new ArrayList<>(callbackRegistrations);
@@ -93,16 +90,13 @@ public class MeterSharedState {
     // Collections across all readers are sequential
     synchronized (collectLock) {
       for (CallbackRegistration callbackRegistration : currentRegisteredCallbacks) {
-        callbackRegistration.invokeCallback(
-            registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
+        callbackRegistration.invokeCallback(registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
       }
 
-      Collection<MetricStorage> storages =
-          Objects.requireNonNull(readerStorageRegistries.get(registeredReader)).getStorages();
+      Collection<MetricStorage> storages = Objects.requireNonNull(readerStorageRegistries.get(registeredReader)).getStorages();
       List<MetricData> result = new ArrayList<>(storages.size());
       for (MetricStorage storage : storages) {
-        MetricData current =
-            storage.collect(
+        MetricData current = storage.collect(
                 meterProviderSharedState.getResource(),
                 getInstrumentationScopeInfo(),
                 meterProviderSharedState.getStartEpochNanos(),
@@ -147,25 +141,18 @@ public class MeterSharedState {
   }
 
   /** Register new asynchronous storage associated with a given instrument. */
-  public final SdkObservableMeasurement registerObservableMeasurement(
-      InstrumentDescriptor instrumentDescriptor) {
+  public final SdkObservableMeasurement registerObservableMeasurement(InstrumentDescriptor instrumentDescriptor) {
     List<AsynchronousMetricStorage<?, ?>> registeredStorages = new ArrayList<>();
-    for (Map.Entry<RegisteredReader, MetricStorageRegistry> entry :
-        readerStorageRegistries.entrySet()) {
+    for (Map.Entry<RegisteredReader, MetricStorageRegistry> entry : readerStorageRegistries.entrySet()) {
       RegisteredReader reader = entry.getKey();
       MetricStorageRegistry registry = entry.getValue();
-      for (RegisteredView registeredView :
-          reader.getViewRegistry().findViews(instrumentDescriptor, getInstrumentationScopeInfo())) {
+      for (RegisteredView registeredView : reader.getViewRegistry().findViews(instrumentDescriptor, getInstrumentationScopeInfo())) {
         if (Aggregation.drop() == registeredView.getView().getAggregation()) {
           continue;
         }
-        registeredStorages.add(
-            registry.register(
-                AsynchronousMetricStorage.create(reader, registeredView, instrumentDescriptor)));
+        registeredStorages.add(registry.register(AsynchronousMetricStorage.create(reader, registeredView, instrumentDescriptor)));
       }
     }
-
-    return SdkObservableMeasurement.create(
-        instrumentationScopeInfo, instrumentDescriptor, registeredStorages);
+    return SdkObservableMeasurement.create(instrumentationScopeInfo, instrumentDescriptor, registeredStorages);
   }
 }
