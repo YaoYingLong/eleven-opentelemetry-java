@@ -35,18 +35,14 @@ final class SpanExporterConfiguration {
   }
 
   // Visible for testing
-  static Map<String, SpanExporter> configureSpanExporters(
-      ConfigProperties config,
-      SpiHelper spiHelper,
-      BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter>
-          spanExporterCustomizer,
+  static Map<String, SpanExporter> configureSpanExporters(ConfigProperties config, SpiHelper spiHelper,
+      BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter> spanExporterCustomizer,
       List<Closeable> closeables) {
     // otel.traces.exporter默认是otlp
     Set<String> exporterNames = DefaultConfigProperties.getSet(config, "otel.traces.exporter");
     if (exporterNames.contains(EXPORTER_NONE)) {
       if (exporterNames.size() > 1) {
-        throw new ConfigurationException(
-            "otel.traces.exporter contains " + EXPORTER_NONE + " along with other exporters");
+        throw new ConfigurationException("otel.traces.exporter contains " + EXPORTER_NONE + " along with other exporters");
       }
       SpanExporter noop = SpanExporter.composite();
       SpanExporter customized = spanExporterCustomizer.apply(noop, config);

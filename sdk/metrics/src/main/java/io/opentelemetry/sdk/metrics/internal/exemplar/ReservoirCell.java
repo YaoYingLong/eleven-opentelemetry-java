@@ -87,8 +87,7 @@ class ReservoirCell {
     if (attributes == null) {
       return null;
     }
-    LongExemplarData result =
-        ImmutableLongExemplarData.create(
+    LongExemplarData result = ImmutableLongExemplarData.create(
             filtered(attributes, pointAttributes), recordTime, spanContext, longValue);
     reset();
     return result;

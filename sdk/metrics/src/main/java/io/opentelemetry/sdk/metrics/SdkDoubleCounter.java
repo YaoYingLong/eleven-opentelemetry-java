@@ -57,9 +57,7 @@ final class SdkDoubleCounter extends AbstractInstrument implements DoubleCounter
     add(increment, Attributes.empty());
   }
 
-  static final class SdkDoubleCounterBuilder
-      extends AbstractInstrumentBuilder<SdkDoubleCounterBuilder>
-      implements ExtendedDoubleCounterBuilder {
+  static final class SdkDoubleCounterBuilder extends AbstractInstrumentBuilder<SdkDoubleCounterBuilder> implements ExtendedDoubleCounterBuilder {
 
     SdkDoubleCounterBuilder(
         MeterProviderSharedState meterProviderSharedState,

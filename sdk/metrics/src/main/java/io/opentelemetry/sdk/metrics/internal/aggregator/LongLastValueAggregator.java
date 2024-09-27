@@ -121,8 +121,7 @@ public final class LongLastValueAggregator implements Aggregator<LongPointData, 
         List<LongExemplarData> exemplars,
         boolean reset) {
       Long value = reset ? this.current.getAndSet(DEFAULT_VALUE) : this.current.get();
-      return ImmutableLongPointData.create(
-          startEpochNanos, epochNanos, attributes, Objects.requireNonNull(value), exemplars);
+      return ImmutableLongPointData.create(startEpochNanos, epochNanos, attributes, Objects.requireNonNull(value), exemplars);
     }
 
     @Override

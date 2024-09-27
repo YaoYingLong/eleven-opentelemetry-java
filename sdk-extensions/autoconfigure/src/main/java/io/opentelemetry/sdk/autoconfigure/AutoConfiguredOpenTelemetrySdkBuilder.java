@@ -86,8 +86,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
   private final List<Function<ConfigProperties, Map<String, String>>> propertiesCustomizers =
       new ArrayList<>();
 
-  private SpiHelper spiHelper =
-      SpiHelper.create(AutoConfiguredOpenTelemetrySdk.class.getClassLoader());
+  private SpiHelper spiHelper = SpiHelper.create(AutoConfiguredOpenTelemetrySdk.class.getClassLoader());
 
   private boolean registerShutdownHook = true;
 
@@ -116,11 +115,9 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
    */
   @Override
   public AutoConfiguredOpenTelemetrySdkBuilder addTracerProviderCustomizer(
-      BiFunction<SdkTracerProviderBuilder, ConfigProperties, SdkTracerProviderBuilder>
-          tracerProviderCustomizer) {
+      BiFunction<SdkTracerProviderBuilder, ConfigProperties, SdkTracerProviderBuilder> tracerProviderCustomizer) {
     requireNonNull(tracerProviderCustomizer, "tracerProviderCustomizer");
-    this.tracerProviderCustomizer =
-        mergeCustomizer(this.tracerProviderCustomizer, tracerProviderCustomizer);
+    this.tracerProviderCustomizer = mergeCustomizer(this.tracerProviderCustomizer, tracerProviderCustomizer);
     return this;
   }
 
@@ -225,11 +222,9 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
    */
   @Override
   public AutoConfiguredOpenTelemetrySdkBuilder addMeterProviderCustomizer(
-      BiFunction<SdkMeterProviderBuilder, ConfigProperties, SdkMeterProviderBuilder>
-          meterProviderCustomizer) {
+      BiFunction<SdkMeterProviderBuilder, ConfigProperties, SdkMeterProviderBuilder> meterProviderCustomizer) {
     requireNonNull(meterProviderCustomizer, "meterProviderCustomizer");
-    this.meterProviderCustomizer =
-        mergeCustomizer(this.meterProviderCustomizer, meterProviderCustomizer);
+    this.meterProviderCustomizer = mergeCustomizer(this.meterProviderCustomizer, meterProviderCustomizer);
     return this;
   }
 
@@ -322,15 +317,31 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
   public AutoConfiguredOpenTelemetrySdk build() {
     if (!customized) {
       customized = true;
+      /**
+       * 这里是通过SPI机制加载SdkTracerProviderConfigurer接口子类，并调用其configure方法，该方法可以去修改设置SdkTracerProviderBuilder中的属性
+       * 这里调用SdkTracerProviderConfigurer#configure方法是会生成一个函数表达式列表，存储到当前类的tracerProviderCustomizer
+       */
       mergeSdkTracerProviderConfigurer();
-      for (AutoConfigurationCustomizerProvider customizer :
-          spiHelper.loadOrdered(AutoConfigurationCustomizerProvider.class)) {
+      /**
+       * 这里也是通过SPI机制加载AutoConfigurationCustomizerProvider接口子类，并调用其customize方法
+       * 通过这种方式可以向当前类添加：tracerProviderCustomizer、propagatorCustomizer、meterProviderCustomizer、metricExporterCustomizer等各种属性
+       * 可以通过添加propertiesCustomizers这种方式添加或修改OpenTelemetry配置
+       *
+       * 这里添加的各种函数表达式，会影响后面各个组件的创建，因为各个组件的创建都会调用到这里添加的函数表达式
+       */
+      for (AutoConfigurationCustomizerProvider customizer : spiHelper.loadOrdered(AutoConfigurationCustomizerProvider.class)) {
         customizer.customize(this);
       }
     }
 
+    // 这里就会调用上面通过自定义AutoConfigurationCustomizerProvider添加的propertiesCustomizers的函数表达式，真正去覆盖并merge默认配置和自定义配置
     ConfigProperties config = getConfig();
 
+    /**
+     * 这首先会通过ConfigProperties中的otel.java.enabled.resource.providers和otel.java.disabled.resource.providers中配置的ResourceProvider
+     * 来添加或排除ResourceProvider，即包含在enabled中的，且不包含在disabled中的ResourceProvider，执行其createResource方法创建Resource并Merge
+     * 到Default的Resource中，然后再调用通过自定义AutoConfigurationCustomizerProvider添加的resourceCustomizer的函数表达式列表
+     */
     Resource resource = ResourceConfiguration.configureResource(config, spiHelper, resourceCustomizer);
 
     // Track any closeable resources created throughout configuration. If an exception short
@@ -338,6 +349,9 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
     List<Closeable> closeables = new ArrayList<>();
 
     try {
+      /**
+       * 构建OpenTelemetrySdk，并初始化SdkTracerProvider、SdkMeterProvider、SdkLoggerProvider，这里其实都是一个空壳
+       */
       OpenTelemetrySdk openTelemetrySdk = OpenTelemetrySdk.builder().build();
       boolean sdkEnabled = !config.getBoolean("otel.sdk.disabled", false);
 
@@ -351,8 +365,12 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
          * 2、将构建的MetricExporter列表和默认值为2000的cardinalityLimit通过函数表达式的方式设置到SdkMeterProviderBuilder的metricReaders（实际是一个HashMap）
          */
         MeterProviderConfiguration.configureMeterProvider(meterProviderBuilder, config, spiHelper, metricExporterCustomizer, closeables);
+        // 调用通过自定义AutoConfigurationCustomizerProvider添加的meterProviderCustomizer的函数表达式列表，作用是修改SdkMeterProviderBuilder
         meterProviderBuilder = meterProviderCustomizer.apply(meterProviderBuilder, config);
-        // 比较重要的是，向PeriodicMetricReader中注册持有的CollectionRegistration为SdkCollectionRegistration
+        /**
+         * 比较重要也比较复杂
+         *  1、向PeriodicMetricReader中注册持有的CollectionRegistration为SdkCollectionRegistration
+         */
         SdkMeterProvider meterProvider = meterProviderBuilder.build();
         closeables.add(meterProvider);
 
@@ -360,36 +378,31 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
         SdkTracerProviderBuilder tracerProviderBuilder = SdkTracerProvider.builder();
         tracerProviderBuilder.setResource(resource);  // 设置resource到tracerProviderBuilder中
         // 创建SpanLimits、Sampler采样器、SpanExporter列表、SpanProcessor列表等并添加到tracerProviderBuilder中用于构建TracerProvider对象
-        TracerProviderConfiguration.configureTracerProvider(
-            tracerProviderBuilder,
-            config,
-            spiHelper,
-            meterProvider,
-            spanExporterCustomizer,
-            samplerCustomizer,
-            closeables);
+        TracerProviderConfiguration.configureTracerProvider(tracerProviderBuilder,
+            config, spiHelper, meterProvider, spanExporterCustomizer, samplerCustomizer, closeables);
+        // 调用通过自定义AutoConfigurationCustomizerProvider添加的tracerProviderCustomizer的函数表达式列表，作用是修改SdkTracerProviderBuilder
         tracerProviderBuilder = tracerProviderCustomizer.apply(tracerProviderBuilder, config);
         SdkTracerProvider tracerProvider = tracerProviderBuilder.build();
         closeables.add(tracerProvider);
 
         SdkLoggerProviderBuilder loggerProviderBuilder = SdkLoggerProvider.builder();
         loggerProviderBuilder.setResource(resource);
-        LoggerProviderConfiguration.configureLoggerProvider(
-            loggerProviderBuilder,
-            config,
-            spiHelper,
-            meterProvider,
-            logRecordExporterCustomizer,
-            closeables);
+        LoggerProviderConfiguration.configureLoggerProvider(loggerProviderBuilder,
+            config, spiHelper, meterProvider, logRecordExporterCustomizer, closeables);
         loggerProviderBuilder = loggerProviderCustomizer.apply(loggerProviderBuilder, config);
         SdkLoggerProvider loggerProvider = loggerProviderBuilder.build();
         closeables.add(loggerProvider);
 
-        ContextPropagators propagators =
-            PropagatorConfiguration.configurePropagators(config, spiHelper, propagatorCustomizer);
-
-        OpenTelemetrySdkBuilder sdkBuilder =
-            OpenTelemetrySdk.builder()
+        /**
+         * 通过SPI机制加载ConfigurablePropagatorProvider，并执行getPropagator方法获取具体的TextMapPropagator列表
+         * 从ConfigProperties中获取otel.propagators配置配置的TextMapPropagator名称列表，默认为tracecontext, baggage
+         * 即默认配置为W3CTraceContextPropagator和W3CBaggagePropagator
+         *
+         * 然后再对每个配置的TextMapPropagator调用通过自定义AutoConfigurationCustomizerProvider添加的propagatorCustomizer的函数表达式列表
+         */
+        ContextPropagators propagators = PropagatorConfiguration.configurePropagators(config, spiHelper, propagatorCustomizer);
+        // 将生成的SdkTracerProvider、SdkLoggerProvider、SdkMeterProvider、ContextPropagators设置到OpenTelemetrySdk中
+        OpenTelemetrySdkBuilder sdkBuilder = OpenTelemetrySdk.builder()
                 .setTracerProvider(tracerProvider)
                 .setLoggerProvider(loggerProvider)
                 .setMeterProvider(meterProvider)
@@ -405,23 +418,18 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
 
       if (setResultAsGlobal) {
         GlobalOpenTelemetry.set(openTelemetrySdk);
-        GlobalEventEmitterProvider.set(
-            SdkEventEmitterProvider.create(openTelemetrySdk.getSdkLoggerProvider()));
-        logger.log(
-            Level.FINE, "Global OpenTelemetry set to {0} by autoconfiguration", openTelemetrySdk);
+        GlobalEventEmitterProvider.set(SdkEventEmitterProvider.create(openTelemetrySdk.getSdkLoggerProvider()));
+        logger.log(Level.FINE, "Global OpenTelemetry set to {0} by autoconfiguration", openTelemetrySdk);
       }
-
       return AutoConfiguredOpenTelemetrySdk.create(openTelemetrySdk, resource, config);
     } catch (RuntimeException e) {
-      logger.info(
-          "Error encountered during autoconfiguration. Closing partially configured components.");
+      logger.info("Error encountered during autoconfiguration. Closing partially configured components.");
       for (Closeable closeable : closeables) {
         try {
           logger.fine("Closing " + closeable.getClass().getName());
           closeable.close();
         } catch (IOException ex) {
-          logger.warning(
-              "Error closing " + closeable.getClass().getName() + ": " + ex.getMessage());
+          logger.warning("Error closing " + closeable.getClass().getName() + ": " + ex.getMessage());
         }
       }
       if (e instanceof ConfigurationException) {
@@ -434,8 +442,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
   @SuppressWarnings("deprecation") // Support deprecated SdkTracerProviderConfigurer
   private void mergeSdkTracerProviderConfigurer() {
     for (io.opentelemetry.sdk.autoconfigure.spi.traces.SdkTracerProviderConfigurer configurer :
-        spiHelper.load(
-            io.opentelemetry.sdk.autoconfigure.spi.traces.SdkTracerProviderConfigurer.class)) {
+        spiHelper.load(io.opentelemetry.sdk.autoconfigure.spi.traces.SdkTracerProviderConfigurer.class)) {
       addTracerProviderCustomizer(
           (builder, config) -> {
             configurer.configure(builder, config);

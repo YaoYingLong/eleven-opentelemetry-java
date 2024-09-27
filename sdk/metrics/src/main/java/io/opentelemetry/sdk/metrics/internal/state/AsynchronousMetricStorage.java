@@ -79,9 +79,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       int maxCardinality) {
     this.registeredReader = registeredReader;
     this.metricDescriptor = metricDescriptor;
-    this.aggregationTemporality =
-        registeredReader
-            .getReader()
+    this.aggregationTemporality = registeredReader.getReader()
             .getAggregationTemporality(metricDescriptor.getSourceInstrument().getType());
     this.memoryMode = registeredReader.getReader().getMemoryMode();
     this.aggregator = aggregator;
@@ -107,12 +105,10 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       InstrumentDescriptor instrumentDescriptor) {
     View view = registeredView.getView();
     MetricDescriptor metricDescriptor = MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
+    // 这里从RegisteredView获取的Aggregation默认是DefaultAggregation
     Aggregator<T, U> aggregator = ((AggregatorFactory) view.getAggregation()).createAggregator(instrumentDescriptor, ExemplarFilter.alwaysOff());
-    return new AsynchronousMetricStorage<>(
-        registeredReader,
-        metricDescriptor,
-        aggregator,
-        registeredView.getViewAttributesProcessor(),
+    return new AsynchronousMetricStorage<>(registeredReader, metricDescriptor,
+        aggregator, registeredView.getViewAttributesProcessor(),
         registeredView.getCardinalityLimit());
   }
 
@@ -123,11 +119,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
   void record(Measurement measurement) {
     Context context = Context.current();
     Attributes processedAttributes = attributesProcessor.process(measurement.attributes(), context);
-    long start =
-        aggregationTemporality == AggregationTemporality.DELTA
-            ? registeredReader.getLastCollectEpochNanos()
-            : measurement.startEpochNanos();
-
+    long start = aggregationTemporality == AggregationTemporality.DELTA ? registeredReader.getLastCollectEpochNanos() : measurement.startEpochNanos();
     measurement = measurement.withAttributes(processedAttributes).withStartEpochNanos(start);
 
     recordPoint(processedAttributes, measurement);

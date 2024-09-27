@@ -144,12 +144,6 @@ public final class BatchSpanProcessorBuilder {
    * @return a new {@link BatchSpanProcessor}.
    */
   public BatchSpanProcessor build() {
-    return new BatchSpanProcessor(
-        spanExporter,
-        meterProvider,
-        scheduleDelayNanos,
-        maxQueueSize,
-        maxExportBatchSize,
-        exporterTimeoutNanos);
+    return new BatchSpanProcessor(spanExporter, meterProvider, scheduleDelayNanos, maxQueueSize, maxExportBatchSize, exporterTimeoutNanos);
   }
 }

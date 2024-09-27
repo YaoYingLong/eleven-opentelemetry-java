@@ -36,17 +36,12 @@ public interface SynchronousMetricStorage extends MetricStorage, WriteableMetric
    * @return The storage, or {@link EmptyMetricStorage#empty()} if the instrument should not be
    *     recorded.
    */
-  static <T extends PointData, U extends ExemplarData> SynchronousMetricStorage create(
-      RegisteredReader registeredReader,
-      RegisteredView registeredView,
-      InstrumentDescriptor instrumentDescriptor,
-      ExemplarFilter exemplarFilter) {
+  static <T extends PointData, U extends ExemplarData> SynchronousMetricStorage create(RegisteredReader registeredReader,
+      RegisteredView registeredView, InstrumentDescriptor instrumentDescriptor, ExemplarFilter exemplarFilter) {
     View view = registeredView.getView();
-    MetricDescriptor metricDescriptor =
-        MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
-    Aggregator<T, U> aggregator =
-        ((AggregatorFactory) view.getAggregation())
-            .createAggregator(instrumentDescriptor, exemplarFilter);
+    MetricDescriptor metricDescriptor = MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
+    // 调用具体的
+    Aggregator<T, U> aggregator = ((AggregatorFactory) view.getAggregation()).createAggregator(instrumentDescriptor, exemplarFilter);
     // We won't be storing this metric.
     if (Aggregator.drop() == aggregator) {
       return empty();

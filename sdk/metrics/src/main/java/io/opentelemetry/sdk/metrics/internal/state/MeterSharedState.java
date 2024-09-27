@@ -39,16 +39,16 @@ public class MeterSharedState {
 
   private final InstrumentationScopeInfo instrumentationScopeInfo;
 
-  private MeterSharedState(
-      InstrumentationScopeInfo instrumentationScopeInfo, List<RegisteredReader> registeredReaders) {
+  private MeterSharedState(InstrumentationScopeInfo instrumentationScopeInfo,
+      List<RegisteredReader> registeredReaders) {
     this.instrumentationScopeInfo = instrumentationScopeInfo;
-    this.readerStorageRegistries =
-        registeredReaders.stream()
-            .collect(toMap(Function.identity(), unused -> new MetricStorageRegistry()));
+    // 这里其实是遍历从SdkMeter中调用传入的registeredReaders，然后为每个RegisteredReader生成一个MetricStorageRegistry
+    this.readerStorageRegistries = registeredReaders.stream()
+        .collect(toMap(Function.identity(), unused -> new MetricStorageRegistry()));
   }
 
-  public static MeterSharedState create(
-      InstrumentationScopeInfo instrumentationScopeInfo, List<RegisteredReader> registeredReaders) {
+  public static MeterSharedState create(InstrumentationScopeInfo instrumentationScopeInfo,
+      List<RegisteredReader> registeredReaders) {
     return new MeterSharedState(instrumentationScopeInfo, registeredReaders);
   }
 
@@ -68,6 +68,9 @@ public class MeterSharedState {
    *
    * <p>The callback will be invoked once per collection until unregistered via {@link
    * #removeCallback(CallbackRegistration)}.
+   *
+   * 该方法调用的时机是AbstractInstrumentBuilder中的registerDoubleAsynchronousInstrument和registerLongAsynchronousInstrument方法中被调用
+   *
    */
   public final void registerCallback(CallbackRegistration callbackRegistration) {
     synchronized (callbackLock) {
@@ -89,10 +92,12 @@ public class MeterSharedState {
     }
     // Collections across all readers are sequential
     synchronized (collectLock) {
+      // 这里通过调用CallbackRegistration的invokeCallback，真正调用通过buildWithCallback方法注册进来的异步方法
       for (CallbackRegistration callbackRegistration : currentRegisteredCallbacks) {
         callbackRegistration.invokeCallback(registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
       }
 
+      // 这里是处理同步
       Collection<MetricStorage> storages = Objects.requireNonNull(readerStorageRegistries.get(registeredReader)).getStorages();
       List<MetricData> result = new ArrayList<>(storages.size());
       for (MetricStorage storage : storages) {
@@ -124,13 +129,20 @@ public class MeterSharedState {
   /** Registers new synchronous storage associated with a given instrument. */
   public final WriteableMetricStorage registerSynchronousMetricStorage(InstrumentDescriptor instrument, MeterProviderSharedState meterProviderSharedState) {
     List<SynchronousMetricStorage> registeredStorages = new ArrayList<>();
+    // 这里的readerStorageRegistries是在MeterSharedState构造方法中，通过SdkMeterProvider传入的registeredReaders
     for (Map.Entry<RegisteredReader, MetricStorageRegistry> entry : readerStorageRegistries.entrySet()) {
       RegisteredReader reader = entry.getKey();
+      // registry获取到的目前都是一个new MetricStorageRegistry();
       MetricStorageRegistry registry = entry.getValue();
+      /**
+       * 其实这个地方比较坑，从代码逻辑上看在SdkMeterProvider中调用ViewRegistry构造方法传入的List<RegisteredView>是空列表
+       * 在findViews中先遍历registeredViews，如果没有找到，会再调用通过类型从ViewRegistry构造方法中初始化的全类型列表中获取
+       */
       for (RegisteredView registeredView : reader.getViewRegistry().findViews(instrument, getInstrumentationScopeInfo())) {
         if (Aggregation.drop() == registeredView.getView().getAggregation()) {
           continue;
         }
+        // 这里其实就是想MetricStorageRegistry中注册DefaultSynchronousMetricStorage，其实主要是将具体的Aggregator放入到DefaultSynchronousMetricStorage
         registeredStorages.add(registry.register(SynchronousMetricStorage.create(reader, registeredView, instrument, meterProviderSharedState.getExemplarFilter())));
       }
     }
@@ -143,13 +155,17 @@ public class MeterSharedState {
   /** Register new asynchronous storage associated with a given instrument. */
   public final SdkObservableMeasurement registerObservableMeasurement(InstrumentDescriptor instrumentDescriptor) {
     List<AsynchronousMetricStorage<?, ?>> registeredStorages = new ArrayList<>();
+    // 这里的readerStorageRegistries是在MeterSharedState构造方法中，通过SdkMeterProvider传入的registeredReaders
     for (Map.Entry<RegisteredReader, MetricStorageRegistry> entry : readerStorageRegistries.entrySet()) {
       RegisteredReader reader = entry.getKey();
+      // registry获取到的目前都是一个new MetricStorageRegistry();
       MetricStorageRegistry registry = entry.getValue();
+      // 需要确认一下通过在SdkMeterProvider中调用ViewRegistry构造方法传入的List<RegisteredView>是什么时候配置的
       for (RegisteredView registeredView : reader.getViewRegistry().findViews(instrumentDescriptor, getInstrumentationScopeInfo())) {
         if (Aggregation.drop() == registeredView.getView().getAggregation()) {
           continue;
         }
+        // 这里其实就是想MetricStorageRegistry中注册DefaultSynchronousMetricStorage，其实主要是将具体的Aggregator放入到DefaultSynchronousMetricStorage
         registeredStorages.add(registry.register(AsynchronousMetricStorage.create(reader, registeredView, instrumentDescriptor)));
       }
     }

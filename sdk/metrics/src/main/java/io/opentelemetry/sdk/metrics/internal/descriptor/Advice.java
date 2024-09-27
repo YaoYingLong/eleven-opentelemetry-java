@@ -44,19 +44,16 @@ public abstract class Advice {
 
     AdviceBuilder() {}
 
-    abstract AdviceBuilder explicitBucketBoundaries(
-        @Nullable List<Double> explicitBucketBoundaries);
+    abstract AdviceBuilder explicitBucketBoundaries(@Nullable List<Double> explicitBucketBoundaries);
 
     /**
      * Sets the explicit bucket histogram boundaries.
      *
      * @param explicitBucketBoundaries the explicit bucket histogram boundaries.
      */
-    public AdviceBuilder setExplicitBucketBoundaries(
-        @Nullable List<Double> explicitBucketBoundaries) {
+    public AdviceBuilder setExplicitBucketBoundaries(@Nullable List<Double> explicitBucketBoundaries) {
       if (explicitBucketBoundaries != null) {
-        explicitBucketBoundaries =
-            Collections.unmodifiableList(new ArrayList<>(explicitBucketBoundaries));
+        explicitBucketBoundaries = Collections.unmodifiableList(new ArrayList<>(explicitBucketBoundaries));
       }
       return explicitBucketBoundaries(explicitBucketBoundaries);
     }

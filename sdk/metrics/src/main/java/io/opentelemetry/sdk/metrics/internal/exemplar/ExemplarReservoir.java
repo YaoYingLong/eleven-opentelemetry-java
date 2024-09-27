@@ -20,8 +20,16 @@ import java.util.function.Supplier;
  *
  * <p>This represents a reservoir for a specific "point" of metric data.
  *
- * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
- * at any time.
+ * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change at any time.
+ *
+ * ExemplarReservoir的主要作用是：
+ *    1、提供一种机制，用于在度量值上采样，从而可以提供关于这些值的例子或者参考点。
+ *    2、可以用于提供对于某个时间序列的度量值的更详细的信息，例如，这个时间序列的最大值、最小值或者平均值等。
+ *
+ * ExemplarReservoir可能会有不同的实现方式，但是它们都需要满足以下的要求：
+ *    1、能够从度量值的流中有效地抽样。
+ *    2、抽样的结果需要是无偏的，也就是说，抽样结果应该能代表整个度量值的分布。
+ *    3、应该有一定的抽样概率，以便能够代表整个度量值的分布。
  */
 public interface ExemplarReservoir<T extends ExemplarData> {
 
@@ -47,6 +55,8 @@ public interface ExemplarReservoir<T extends ExemplarData> {
    * @param clock The clock to use when annotating measurements with time.
    * @param size The maximum number of exemplars to preserve.
    * @param randomSupplier The random number generator to use for sampling.
+   *
+   * 是一个固定大小的例子集合，用于存储数据点。当数据点超过这个大小时，会使用某种策略来替换旧的数据点，例如，最老的数据点可能会被最新的数据点替换。
    */
   static ExemplarReservoir<DoubleExemplarData> doubleFixedSizeReservoir(
       Clock clock, int size, Supplier<Random> randomSupplier) {
@@ -54,7 +64,7 @@ public interface ExemplarReservoir<T extends ExemplarData> {
   }
 
   /**
-   * A long reservoir with fixed size that stores the given number of exemplars.
+   * ·
    *
    * @param clock The clock to use when annotating measurements with time.
    * @param size The maximum number of exemplars to preserve.

@@ -24,16 +24,13 @@ final class PropagatorConfiguration {
 
   private static final List<String> DEFAULT_PROPAGATORS = Arrays.asList("tracecontext", "baggage");
 
-  static ContextPropagators configurePropagators(
-      ConfigProperties config,
-      SpiHelper spiHelper,
-      BiFunction<? super TextMapPropagator, ConfigProperties, ? extends TextMapPropagator>
-          propagatorCustomizer) {
+  static ContextPropagators configurePropagators(ConfigProperties config, SpiHelper spiHelper,
+      BiFunction<? super TextMapPropagator, ConfigProperties, ? extends TextMapPropagator> propagatorCustomizer) {
     Set<TextMapPropagator> propagators = new LinkedHashSet<>();
     List<String> requestedPropagators = config.getList("otel.propagators", DEFAULT_PROPAGATORS);
 
-    NamedSpiManager<TextMapPropagator> spiPropagatorsManager =
-        spiHelper.loadConfigurable(
+    // 通过SPI机制加载ConfigurablePropagatorProvider，并执行getPropagator方法获取具体的TextMapPropagator
+    NamedSpiManager<TextMapPropagator> spiPropagatorsManager = spiHelper.loadConfigurable(
             ConfigurablePropagatorProvider.class,
             ConfigurablePropagatorProvider::getName,
             ConfigurablePropagatorProvider::getPropagator,
@@ -47,15 +44,12 @@ final class PropagatorConfiguration {
       return ContextPropagators.noop();
     }
     for (String propagatorName : requestedPropagators) {
-      propagators.add(
-          propagatorCustomizer.apply(getPropagator(propagatorName, spiPropagatorsManager), config));
+      propagators.add(propagatorCustomizer.apply(getPropagator(propagatorName, spiPropagatorsManager), config));
     }
-
     return ContextPropagators.create(TextMapPropagator.composite(propagators));
   }
 
-  private static TextMapPropagator getPropagator(
-      String name, NamedSpiManager<TextMapPropagator> spiPropagatorsManager) {
+  private static TextMapPropagator getPropagator(String name, NamedSpiManager<TextMapPropagator> spiPropagatorsManager) {
     if (name.equals("tracecontext")) {
       return W3CTraceContextPropagator.getInstance();
     }
@@ -67,10 +61,7 @@ final class PropagatorConfiguration {
     if (spiPropagator != null) {
       return spiPropagator;
     }
-    throw new ConfigurationException(
-        "Unrecognized value for otel.propagators: "
-            + name
-            + ". Make sure the artifact including the propagator is on the classpath.");
+    throw new ConfigurationException("Unrecognized value for otel.propagators: " + name + ". Make sure the artifact including the propagator is on the classpath.");
   }
 
   private PropagatorConfiguration() {}

@@ -174,23 +174,15 @@ public final class OtlpConfigUtil {
    * Invoke the {@code defaultAggregationSelectorConsumer} with the configured {@link
    * DefaultAggregationSelector}.
    */
-  public static void configureOtlpHistogramDefaultAggregation(
-      ConfigProperties config,
-      Consumer<DefaultAggregationSelector> defaultAggregationSelectorConsumer) {
-    String defaultHistogramAggregation =
-        config.getString("otel.exporter.otlp.metrics.default.histogram.aggregation");
+  public static void configureOtlpHistogramDefaultAggregation(ConfigProperties config, Consumer<DefaultAggregationSelector> defaultAggregationSelectorConsumer) {
+    String defaultHistogramAggregation = config.getString("otel.exporter.otlp.metrics.default.histogram.aggregation");
     if (defaultHistogramAggregation == null) {
       return;
     }
-    if (AggregationUtil.aggregationName(Aggregation.base2ExponentialBucketHistogram())
-        .equalsIgnoreCase(defaultHistogramAggregation)) {
-      defaultAggregationSelectorConsumer.accept(
-          DefaultAggregationSelector.getDefault()
-              .with(InstrumentType.HISTOGRAM, Aggregation.base2ExponentialBucketHistogram()));
-    } else if (!AggregationUtil.aggregationName(explicitBucketHistogram())
-        .equalsIgnoreCase(defaultHistogramAggregation)) {
-      throw new ConfigurationException(
-          "Unrecognized default histogram aggregation: " + defaultHistogramAggregation);
+    if (AggregationUtil.aggregationName(Aggregation.base2ExponentialBucketHistogram()).equalsIgnoreCase(defaultHistogramAggregation)) {
+      defaultAggregationSelectorConsumer.accept(DefaultAggregationSelector.getDefault().with(InstrumentType.HISTOGRAM, Aggregation.base2ExponentialBucketHistogram()));
+    } else if (!AggregationUtil.aggregationName(explicitBucketHistogram()).equalsIgnoreCase(defaultHistogramAggregation)) {
+      throw new ConfigurationException("Unrecognized default histogram aggregation: " + defaultHistogramAggregation);
     }
   }
 

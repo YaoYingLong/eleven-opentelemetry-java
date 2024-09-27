@@ -64,9 +64,7 @@ public final class ViewRegistry {
   private final Map<InstrumentType, RegisteredView> instrumentDefaultRegisteredView;
   private final List<RegisteredView> registeredViews;
 
-  ViewRegistry(DefaultAggregationSelector defaultAggregationSelector,
-      CardinalityLimitSelector cardinalityLimitSelector,
-      List<RegisteredView> registeredViews) {
+  ViewRegistry(DefaultAggregationSelector defaultAggregationSelector, CardinalityLimitSelector cardinalityLimitSelector, List<RegisteredView> registeredViews) {
     instrumentDefaultRegisteredView = new HashMap<>();
     // 将所有的指标工具类型都添加到instrumentDefaultRegisteredView
     for (InstrumentType instrumentType : InstrumentType.values()) {
@@ -87,20 +85,18 @@ public final class ViewRegistry {
 
   /** Returns a {@link ViewRegistry}. */
   public static ViewRegistry create(DefaultAggregationSelector defaultAggregationSelector,
-      CardinalityLimitSelector cardinalityLimitSelector,
-      List<RegisteredView> registeredViews) {
+      CardinalityLimitSelector cardinalityLimitSelector, List<RegisteredView> registeredViews) {
     /**
      * 这里传入的DefaultAggregationSelector实际是子类PeriodicMetricReader
      * CardinalityLimitSelector是默认值为2000的函数表达式
-     * registeredViews这个从代码上来看是通过解析配置文件加载进来的
+     * registeredViews这个从代码上来看是通过解析配置文件加载进来的，如果没哟配置，那默认应该是一个空ArrayList
      */
     return new ViewRegistry(defaultAggregationSelector, cardinalityLimitSelector, new ArrayList<>(registeredViews));
   }
 
   /** Return a {@link ViewRegistry} using the default aggregation and no views registered. */
   public static ViewRegistry create() {
-    return create(
-        unused -> Aggregation.defaultAggregation(),
+    return create(unused -> Aggregation.defaultAggregation(),
         CardinalityLimitSelector.defaultCardinalityLimitSelector(),
         Collections.emptyList());
   }
@@ -114,6 +110,7 @@ public final class ViewRegistry {
   public List<RegisteredView> findViews(InstrumentDescriptor descriptor, InstrumentationScopeInfo meterScope) {
     List<RegisteredView> result = new ArrayList<>();
     // Find matching views for the instrument
+    // 这里registeredViews默认是一个空列表，就会通过下面的的逻辑根据InstrumentType从instrumentDefaultRegisteredView中获取
     for (RegisteredView entry : registeredViews) {
       if (matchesSelector(entry.getInstrumentSelector(), descriptor, meterScope)) {
         AggregatorFactory viewAggregatorFactory = (AggregatorFactory) entry.getView().getAggregation();

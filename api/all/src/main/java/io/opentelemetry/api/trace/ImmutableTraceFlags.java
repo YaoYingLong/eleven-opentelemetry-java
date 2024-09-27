@@ -25,8 +25,7 @@ final class ImmutableTraceFlags implements TraceFlags {
   // Implementation of the TraceFlags.fromHex().
   static ImmutableTraceFlags fromHex(CharSequence src, int srcOffset) {
     Objects.requireNonNull(src, "src");
-    return fromByte(
-        OtelEncodingUtils.byteFromBase16(src.charAt(srcOffset), src.charAt(srcOffset + 1)));
+    return fromByte(OtelEncodingUtils.byteFromBase16(src.charAt(srcOffset), src.charAt(srcOffset + 1)));
   }
 
   // Implementation of the TraceFlags.fromByte().

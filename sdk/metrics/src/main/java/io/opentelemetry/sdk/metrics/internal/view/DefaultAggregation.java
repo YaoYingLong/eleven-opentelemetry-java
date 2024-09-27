@@ -35,12 +35,15 @@ public final class DefaultAggregation implements Aggregation, AggregatorFactory 
 
   private DefaultAggregation() {}
 
+  /**
+   * 通过InstrumentDescriptor中保存的InstrumentType，生成具体的Aggregation对象
+   */
   private static Aggregation resolve(InstrumentDescriptor instrument, boolean withAdvice) {
     switch (instrument.getType()) {
       case COUNTER:
       case UP_DOWN_COUNTER:
-      case OBSERVABLE_COUNTER:
-      case OBSERVABLE_UP_DOWN_COUNTER:
+      case OBSERVABLE_COUNTER:    // COUNTER异步的方式
+      case OBSERVABLE_UP_DOWN_COUNTER:    // UP_DOWN_COUNTER异步的方式
         return SumAggregation.getInstance();
       case HISTOGRAM:
         if (withAdvice && instrument.getAdvice().getExplicitBucketBoundaries() != null) {
@@ -58,6 +61,16 @@ public final class DefaultAggregation implements Aggregation, AggregatorFactory 
   @Override
   public <T extends PointData, U extends ExemplarData> Aggregator<T, U> createAggregator(
       InstrumentDescriptor instrumentDescriptor, ExemplarFilter exemplarFilter) {
+    /**
+     * 首先通过resolve方法从InstrumentDescriptor中存储的InstrumentType类型来创建具体的Aggregation
+     * 然后再调用具体的Aggregation的createAggregator方法
+     *   COUNTER: SumAggregation
+     *   UP_DOWN_COUNTER: SumAggregation
+     *   OBSERVABLE_COUNTER: SumAggregation
+     *   OBSERVABLE_UP_DOWN_COUNTER: SumAggregation
+     *   HISTOGRAM:ExplicitBucketHistogramAggregation
+     *   OBSERVABLE_GAUGE:LastValueAggregation
+     */
     return ((AggregatorFactory) resolve(instrumentDescriptor, /* withAdvice= */ true))
         .createAggregator(instrumentDescriptor, exemplarFilter);
   }

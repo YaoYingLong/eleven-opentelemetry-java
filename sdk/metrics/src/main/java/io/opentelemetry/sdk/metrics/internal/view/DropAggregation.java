@@ -18,6 +18,13 @@ import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarFilter;
  *
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
+ *
+ *
+ * 一种指标聚合策略，用于指标处理管道中。在OpenTelemetry中，如果某种指标的数据流量非常大，我们可能不希望将所有的指标数据点都保存下来，
+ * 而是希望根据某种策略来决定丢弃一部分数据点。DropAggregation就是用来实现这种功能的。
+ *
+ * 当使用DropAggregation时，OpenTelemetry会根据配置的策略丢弃一部分的指标数据点。这种策略可以用来防止内存溢出、
+ * 防止网络带宽的使用或者是为了简化数据模型。
  */
 public final class DropAggregation implements Aggregation, AggregatorFactory {
 

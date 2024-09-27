@@ -16,6 +16,13 @@ import javax.annotation.concurrent.Immutable;
  *
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
+ *
+ * RegisteredView是OpenTelemetry中的一个接口，它用于表示一个已注册的视图，通常用于指标（metrics）系统中。在OpenTelemetry中，视图是一种定义如何展示和聚合指标数据的方法。
+ *
+ * RegisteredView接口通常用于定义如何处理和展示一组指标数据，它可能包含如下方法：
+ *  1、Aggregation：表示应如何聚合指标数据，例如求和、平均值、最大值等。
+ *  2、InstrumentSelector：定义了一组特定的指标工具，这些工具应该应用此视图。
+ *  3、AggregationWindow：表示数据应该在多长时间内聚合，例如每5分钟、每1小时等
  */
 @AutoValue
 @Immutable

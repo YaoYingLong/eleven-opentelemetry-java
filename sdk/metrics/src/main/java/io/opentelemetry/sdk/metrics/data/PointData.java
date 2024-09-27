@@ -17,15 +17,27 @@ import java.util.List;
  * @since 1.14.0
  */
 public interface PointData {
-  /** Returns the start time of the aggregation in epoch nanos. */
+  /**
+   * Returns the start time of the aggregation in epoch nanos.
+   * 聚合的开始时间
+   */
   long getStartEpochNanos();
 
-  /** Returns the end time of the aggregation in epoch nanos. */
+  /**
+   * Returns the end time of the aggregation in epoch nanos.
+   * 聚合的结束时间
+   */
   long getEpochNanos();
 
-  /** Returns the attributes of the aggregation. */
+  /**
+   * Returns the attributes of the aggregation.
+   * 聚合属性
+   */
   Attributes getAttributes();
 
-  /** List of exemplars collected from measurements aggregated into this point. */
+  /**
+   * List of exemplars collected from measurements aggregated into this point.
+   * 从聚合到此点的测量中收集的示例列表
+   */
   List<? extends ExemplarData> getExemplars();
 }

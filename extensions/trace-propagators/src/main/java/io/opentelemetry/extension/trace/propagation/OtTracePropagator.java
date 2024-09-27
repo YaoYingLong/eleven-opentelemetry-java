@@ -67,8 +67,7 @@ public final class OtTracePropagator implements TextMapPropagator {
     }
     // Lightstep trace id MUST be 64-bits therefore OpenTelemetry trace id is truncated to 64-bits
     // by retaining least significant (right-most) bits.
-    setter.set(
-        carrier, TRACE_ID_HEADER, spanContext.getTraceId().substring(TraceId.getLength() / 2));
+    setter.set(carrier, TRACE_ID_HEADER, spanContext.getTraceId().substring(TraceId.getLength() / 2));
     setter.set(carrier, SPAN_ID_HEADER, spanContext.getSpanId());
     setter.set(carrier, SAMPLED_HEADER, String.valueOf(spanContext.isSampled()));
 
@@ -91,10 +90,7 @@ public final class OtTracePropagator implements TextMapPropagator {
       return context;
     }
     String incomingTraceId = getter.get(carrier, TRACE_ID_HEADER);
-    String traceId =
-        incomingTraceId == null
-            ? TraceId.getInvalid()
-            : StringUtils.padLeft(incomingTraceId, MAX_TRACE_ID_LENGTH);
+    String traceId = incomingTraceId == null ? TraceId.getInvalid() : StringUtils.padLeft(incomingTraceId, MAX_TRACE_ID_LENGTH);
     String spanId = getter.get(carrier, SPAN_ID_HEADER);
     String sampled = getter.get(carrier, SAMPLED_HEADER);
     SpanContext spanContext = buildSpanContext(traceId, spanId, sampled);
@@ -122,7 +118,6 @@ public final class OtTracePropagator implements TextMapPropagator {
         extractedContext = extractedContext.with(baggage);
       }
     }
-
     return extractedContext;
   }
 

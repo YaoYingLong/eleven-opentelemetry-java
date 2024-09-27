@@ -169,37 +169,17 @@ public final class BatchLogRecordProcessor implements LogRecordProcessor {
       this.queue = queue;
       this.signal = new ArrayBlockingQueue<>(1);
       Meter meter = meterProvider.meterBuilder("io.opentelemetry.sdk.logs").build();
-      meter
-          .gaugeBuilder("queueSize")
+      meter.gaugeBuilder("queueSize")
           .ofLongs()
           .setDescription("The number of items queued")
           .setUnit("1")
-          .buildWithCallback(
-              result ->
-                  result.record(
-                      queue.size(),
-                      Attributes.of(
-                          LOG_RECORD_PROCESSOR_TYPE_LABEL, LOG_RECORD_PROCESSOR_TYPE_VALUE)));
-      processedLogsCounter =
-          meter
-              .counterBuilder("processedLogs")
-              .setUnit("1")
-              .setDescription(
-                  "The number of logs processed by the BatchLogRecordProcessor. "
-                      + "[dropped=true if they were dropped due to high throughput]")
-              .build();
-      droppedAttrs =
-          Attributes.of(
-              LOG_RECORD_PROCESSOR_TYPE_LABEL,
-              LOG_RECORD_PROCESSOR_TYPE_VALUE,
-              LOG_RECORD_PROCESSOR_DROPPED_LABEL,
-              true);
-      exportedAttrs =
-          Attributes.of(
-              LOG_RECORD_PROCESSOR_TYPE_LABEL,
-              LOG_RECORD_PROCESSOR_TYPE_VALUE,
-              LOG_RECORD_PROCESSOR_DROPPED_LABEL,
-              false);
+          .buildWithCallback(result -> result.record(queue.size(), Attributes.of(LOG_RECORD_PROCESSOR_TYPE_LABEL, LOG_RECORD_PROCESSOR_TYPE_VALUE)));
+      processedLogsCounter = meter
+          .counterBuilder("processedLogs")
+          .setUnit("1")
+          .setDescription("The number of logs processed by the BatchLogRecordProcessor. [dropped=true if they were dropped due to high throughput]").build();
+      droppedAttrs = Attributes.of(LOG_RECORD_PROCESSOR_TYPE_LABEL, LOG_RECORD_PROCESSOR_TYPE_VALUE, LOG_RECORD_PROCESSOR_DROPPED_LABEL, true);
+      exportedAttrs = Attributes.of(LOG_RECORD_PROCESSOR_TYPE_LABEL, LOG_RECORD_PROCESSOR_TYPE_VALUE, LOG_RECORD_PROCESSOR_DROPPED_LABEL, false);
 
       this.batch = new ArrayList<>(this.maxExportBatchSize);
     }

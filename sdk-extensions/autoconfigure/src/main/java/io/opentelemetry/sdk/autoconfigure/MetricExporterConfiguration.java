@@ -67,7 +67,7 @@ final class MetricExporterConfiguration {
     }
 
     // Customize metric exporter and associate it with PeriodicMetricReader
-    closeables.add(metricExporter);  // metricExporter默认是OtlpMetricExporterProvider
+    closeables.add(metricExporter);  // metricExporter默认是OtlpGrpcMetricExporter
     MetricExporter customizedMetricExporter = metricExporterCustomizer.apply(metricExporter, config);
     if (customizedMetricExporter != metricExporter) {
       closeables.add(customizedMetricExporter);

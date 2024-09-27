@@ -16,10 +16,8 @@ import java.util.List;
 /** A reservoir that keeps no exemplars. */
 class NoopExemplarReservoir<T extends ExemplarData> implements ExemplarReservoir<T> {
 
-  static final NoopExemplarReservoir<LongExemplarData> LONG_INSTANCE =
-      new NoopExemplarReservoir<>();
-  static final NoopExemplarReservoir<DoubleExemplarData> DOUBLE_INSTANCE =
-      new NoopExemplarReservoir<>();
+  static final NoopExemplarReservoir<LongExemplarData> LONG_INSTANCE = new NoopExemplarReservoir<>();
+  static final NoopExemplarReservoir<DoubleExemplarData> DOUBLE_INSTANCE = new NoopExemplarReservoir<>();
 
   private NoopExemplarReservoir() {}
 

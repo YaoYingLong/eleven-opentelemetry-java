@@ -88,10 +88,8 @@ final class SdkLongHistogram extends AbstractInstrument implements LongHistogram
     }
 
     @Override
-    public ExtendedLongHistogramBuilder setExplicitBucketBoundariesAdvice(
-        List<Long> bucketBoundaries) {
-      List<Double> doubleBoundaries =
-          bucketBoundaries.stream().map(Long::doubleValue).collect(Collectors.toList());
+    public ExtendedLongHistogramBuilder setExplicitBucketBoundariesAdvice(List<Long> bucketBoundaries) {
+      List<Double> doubleBoundaries = bucketBoundaries.stream().map(Long::doubleValue).collect(Collectors.toList());
       adviceBuilder.setExplicitBucketBoundaries(doubleBoundaries);
       return this;
     }

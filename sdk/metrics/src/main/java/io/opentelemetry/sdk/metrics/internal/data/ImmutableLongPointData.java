@@ -60,7 +60,6 @@ public abstract class ImmutableLongPointData implements LongPointData {
       Attributes attributes,
       long value,
       List<LongExemplarData> exemplars) {
-    return new AutoValue_ImmutableLongPointData(
-        startEpochNanos, epochNanos, attributes, value, exemplars);
+    return new AutoValue_ImmutableLongPointData(startEpochNanos, epochNanos, attributes, value, exemplars);
   }
 }

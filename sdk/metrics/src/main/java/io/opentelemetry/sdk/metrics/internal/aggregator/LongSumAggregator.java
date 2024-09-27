@@ -32,13 +32,11 @@ import java.util.function.Supplier;
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
  */
-public final class LongSumAggregator
-    extends AbstractSumAggregator<LongPointData, LongExemplarData> {
+public final class LongSumAggregator extends AbstractSumAggregator<LongPointData, LongExemplarData> {
 
   private final Supplier<ExemplarReservoir<LongExemplarData>> reservoirSupplier;
 
-  public LongSumAggregator(
-      InstrumentDescriptor instrumentDescriptor,
+  public LongSumAggregator(InstrumentDescriptor instrumentDescriptor,
       Supplier<ExemplarReservoir<LongExemplarData>> reservoirSupplier) {
     super(instrumentDescriptor);
     this.reservoirSupplier = reservoirSupplier;
@@ -46,6 +44,8 @@ public final class LongSumAggregator
 
   @Override
   public AggregatorHandle<LongPointData, LongExemplarData> createHandle() {
+    // 这里是调用具体Aggregation中createAggregator方法创建的函数表达式得到实际的ExemplarReservoir
+    // 函数表达式也是通过调用ExemplarReservoir中的static方法来创建的，传入了具体的ExemplarFilter
     return new Handle(reservoirSupplier.get());
   }
 
@@ -130,8 +130,7 @@ public final class LongSumAggregator
         List<LongExemplarData> exemplars,
         boolean reset) {
       long value = reset ? this.current.sumThenReset() : this.current.sum();
-      return ImmutableLongPointData.create(
-          startEpochNanos, epochNanos, attributes, value, exemplars);
+      return ImmutableLongPointData.create(startEpochNanos, epochNanos, attributes, value, exemplars);
     }
 
     @Override

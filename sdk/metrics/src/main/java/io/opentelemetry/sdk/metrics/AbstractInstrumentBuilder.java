@@ -93,22 +93,31 @@ abstract class AbstractInstrumentBuilder<BuilderT extends AbstractInstrumentBuil
         adviceBuilder);
   }
 
+  /**
+   * 非异步注册的情况
+   */
   final <I extends AbstractInstrument> I buildSynchronousInstrument(BiFunction<InstrumentDescriptor, WriteableMetricStorage, I> instrumentFactory) {
     InstrumentDescriptor descriptor = InstrumentDescriptor.create(instrumentName, description, unit, type, valueType, adviceBuilder.build());
+    // 这里返回的是MultiWritableMetricStorage，这里的meterProviderSharedState其实就是SdkMeterProvider中的sharedState
     WriteableMetricStorage storage = meterSharedState.registerSynchronousMetricStorage(descriptor, meterProviderSharedState);
+    // 这里其实就是调用具体的如SdkDoubleCounter的new方法
     return instrumentFactory.apply(descriptor, storage);
   }
 
+  /**
+   * 存在异步注册的情况使用
+   */
   final SdkObservableInstrument registerDoubleAsynchronousInstrument(InstrumentType type, Consumer<ObservableDoubleMeasurement> updater) {
     SdkObservableMeasurement sdkObservableMeasurement = buildObservableMeasurement(type);
     Runnable runnable = () -> updater.accept(sdkObservableMeasurement);
-    CallbackRegistration callbackRegistration =
-        CallbackRegistration.create(Collections.singletonList(sdkObservableMeasurement), runnable);
+    CallbackRegistration callbackRegistration = CallbackRegistration.create(Collections.singletonList(sdkObservableMeasurement), runnable);
     meterSharedState.registerCallback(callbackRegistration);
     return new SdkObservableInstrument(meterSharedState, callbackRegistration);
   }
 
   /**
+   * 存在异步注册的情况使用
+   *
    * 通过Worker构造方法掉过来传入的InstrumentType为InstrumentType.OBSERVABLE_GAUGE
    * updater为：result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)
    */

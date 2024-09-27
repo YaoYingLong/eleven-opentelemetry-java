@@ -46,8 +46,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
   private final MetricDescriptor metricDescriptor;
   private final AggregationTemporality aggregationTemporality;
   private final Aggregator<T, U> aggregator;
-  private final ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles =
-      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Attributes, AggregatorHandle<T, U>> aggregatorHandles = new ConcurrentHashMap<>();
   private final AttributesProcessor attributesProcessor;
 
   /**
@@ -125,14 +124,9 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
   }
 
   @Override
-  public MetricData collect(
-      Resource resource,
-      InstrumentationScopeInfo instrumentationScopeInfo,
-      long startEpochNanos,
-      long epochNanos) {
+  public MetricData collect(Resource resource, InstrumentationScopeInfo instrumentationScopeInfo, long startEpochNanos, long epochNanos) {
     boolean reset = aggregationTemporality == AggregationTemporality.DELTA;
-    long start =
-        aggregationTemporality == AggregationTemporality.DELTA
+    long start = aggregationTemporality == AggregationTemporality.DELTA
             ? registeredReader.getLastCollectEpochNanos()
             : startEpochNanos;
 
@@ -162,8 +156,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
       return EmptyMetricData.getInstance();
     }
 
-    return aggregator.toMetricData(
-        resource, instrumentationScopeInfo, metricDescriptor, points, aggregationTemporality);
+    return aggregator.toMetricData(resource, instrumentationScopeInfo, metricDescriptor, points, aggregationTemporality);
   }
 
   @Override

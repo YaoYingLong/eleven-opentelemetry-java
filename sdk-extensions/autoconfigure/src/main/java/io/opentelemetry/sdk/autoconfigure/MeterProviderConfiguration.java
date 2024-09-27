@@ -32,16 +32,16 @@ final class MeterProviderConfiguration {
     String exemplarFilter = config.getString("otel.metrics.exemplar.filter", "trace_based").toLowerCase(Locale.ROOT);
     switch (exemplarFilter) {
       case "always_off":
-        // 通过反射的方式嗲用SdkMeterProviderBuilder的setExemplarFilter设置AlwaysOffFilter
+        // 通过反射的方式的用SdkMeterProviderBuilder的setExemplarFilter设置AlwaysOffFilter
         SdkMeterProviderUtil.setExemplarFilter(meterProviderBuilder, ExemplarFilter.alwaysOff());
         break;
       case "always_on":
-        // 通过反射的方式嗲用SdkMeterProviderBuilder的setExemplarFilter设置AlwaysOnFilter
+        // 通过反射的方式的用SdkMeterProviderBuilder的setExemplarFilter设置AlwaysOnFilter
         SdkMeterProviderUtil.setExemplarFilter(meterProviderBuilder, ExemplarFilter.alwaysOn());
         break;
       case "trace_based":
       default:
-        // 通过反射的方式嗲用SdkMeterProviderBuilder的setExemplarFilter设置TraceBasedExemplarFilter
+        // 通过反射的方式的用SdkMeterProviderBuilder的setExemplarFilter设置TraceBasedExemplarFilter
         SdkMeterProviderUtil.setExemplarFilter(meterProviderBuilder, ExemplarFilter.traceBased());
         break;
     }

@@ -33,39 +33,27 @@ final class TracerProviderConfiguration {
   private static final double DEFAULT_TRACEIDRATIO_SAMPLE_RATIO = 1.0d;
   private static final String PARENTBASED_ALWAYS_ON = "parentbased_always_on";
 
-  static void configureTracerProvider(
-      SdkTracerProviderBuilder tracerProviderBuilder,
+  static void configureTracerProvider(SdkTracerProviderBuilder tracerProviderBuilder,
       ConfigProperties config,
       SpiHelper spiHelper,
       MeterProvider meterProvider,
-      BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter>
-          spanExporterCustomizer,
+      BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter> spanExporterCustomizer,
       BiFunction<? super Sampler, ConfigProperties, ? extends Sampler> samplerCustomizer,
       List<Closeable> closeables) {
-
     // 构建SpanLimits对象，并设置各种限制属性，并将齐设置到tracerProviderBuilder中
     tracerProviderBuilder.setSpanLimits(configureSpanLimits(config));
-
     // 获取采样器的的配置：全采、全不采等等
     String sampler = config.getString("otel.traces.sampler", PARENTBASED_ALWAYS_ON);
     // 构建并设置Sampler采样器
-    tracerProviderBuilder.setSampler(
-        samplerCustomizer.apply(configureSampler(sampler, config, spiHelper), config));
+    tracerProviderBuilder.setSampler(samplerCustomizer.apply(configureSampler(sampler, config, spiHelper), config));
     // 构建SpanExporter列表
-    Map<String, SpanExporter> exportersByName =
-        SpanExporterConfiguration.configureSpanExporters(
-            config, spiHelper, spanExporterCustomizer, closeables);
-
+    Map<String, SpanExporter> exportersByName = SpanExporterConfiguration.configureSpanExporters(config, spiHelper, spanExporterCustomizer, closeables);
     // 创建SpanProcessor列表并添加到tracerProviderBuilder
-    configureSpanProcessors(config, exportersByName, meterProvider, closeables)
-        .forEach(tracerProviderBuilder::addSpanProcessor);
+    configureSpanProcessors(config, exportersByName, meterProvider, closeables).forEach(tracerProviderBuilder::addSpanProcessor);
   }
 
-  static List<SpanProcessor> configureSpanProcessors(
-      ConfigProperties config,
-      Map<String, SpanExporter> exportersByName,
-      MeterProvider meterProvider,
-      List<Closeable> closeables) {
+  static List<SpanProcessor> configureSpanProcessors(ConfigProperties config, Map<String, SpanExporter> exportersByName,
+      MeterProvider meterProvider, List<Closeable> closeables) {
     Map<String, SpanExporter> exportersByNameCopy = new HashMap<>(exportersByName);
     List<SpanProcessor> spanProcessors = new ArrayList<>();
 
@@ -80,7 +68,7 @@ final class TracerProviderConfiguration {
     if (!exportersByNameCopy.isEmpty()) {
       // 实例化SpanExporter
       SpanExporter compositeSpanExporter = SpanExporter.composite(exportersByNameCopy.values());
-      // 构建BatchSpanProcessor，设置export的超时时间、批量size等
+      // 构建BatchSpanProcessor，设置export的超时时间、批量size等，且这里将SdkMeterProvider设置到了BatchSpanProcessor中
       SpanProcessor spanProcessor = configureBatchSpanProcessor(config, compositeSpanExporter, meterProvider);
       closeables.add(spanProcessor);
       spanProcessors.add(spanProcessor);
@@ -92,27 +80,22 @@ final class TracerProviderConfiguration {
   // VisibleForTesting
   static BatchSpanProcessor configureBatchSpanProcessor(ConfigProperties config, SpanExporter exporter, MeterProvider meterProvider) {
     BatchSpanProcessorBuilder builder = BatchSpanProcessor.builder(exporter).setMeterProvider(meterProvider);
-
     Duration scheduleDelay = config.getDuration("otel.bsp.schedule.delay");
     if (scheduleDelay != null) {
       builder.setScheduleDelay(scheduleDelay);
     }
-
     Integer maxQueue = config.getInt("otel.bsp.max.queue.size");
     if (maxQueue != null) {
       builder.setMaxQueueSize(maxQueue);
     }
-
     Integer maxExportBatch = config.getInt("otel.bsp.max.export.batch.size");
     if (maxExportBatch != null) {
       builder.setMaxExportBatchSize(maxExportBatch);
     }
-
     Duration timeout = config.getDuration("otel.bsp.export.timeout");
     if (timeout != null) {
       builder.setExporterTimeout(timeout);
     }
-
     return builder.build();
   }
 
@@ -155,8 +138,7 @@ final class TracerProviderConfiguration {
 
   // Visible for testing
   static Sampler configureSampler(String sampler, ConfigProperties config, SpiHelper spiHelper) {
-    NamedSpiManager<Sampler> spiSamplersManager =
-        spiHelper.loadConfigurable(
+    NamedSpiManager<Sampler> spiSamplersManager = spiHelper.loadConfigurable(
             ConfigurableSamplerProvider.class,
             ConfigurableSamplerProvider::getName,
             ConfigurableSamplerProvider::createSampler,

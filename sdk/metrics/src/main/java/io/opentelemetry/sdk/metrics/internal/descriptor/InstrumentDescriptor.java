@@ -13,6 +13,8 @@ import java.util.Locale;
 import javax.annotation.concurrent.Immutable;
 
 /**
+ * InstrumentDescriptor 的主要职责是提供一种方式来定义和标准化监测工具的行为，包括如何创建和命名指标、这些指标的默认属性以及如何处理这些指标的数据
+ *
  * Describes an instrument that was registered to record data.
  *
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
@@ -43,8 +45,23 @@ public abstract class InstrumentDescriptor {
 
   public abstract String getUnit();
 
+  /**
+   * 目前支持的类型：
+   *   COUNTER,
+   *   UP_DOWN_COUNTER,
+   *   HISTOGRAM,
+   *   OBSERVABLE_COUNTER,
+   *   OBSERVABLE_UP_DOWN_COUNTER,
+   *   OBSERVABLE_GAUGE,
+   */
   public abstract InstrumentType getType();
 
+  /**
+   * 目前支持的类型：
+   *   LONG,
+   *   DOUBLE,
+   * @return
+   */
   public abstract InstrumentValueType getValueType();
 
   /**

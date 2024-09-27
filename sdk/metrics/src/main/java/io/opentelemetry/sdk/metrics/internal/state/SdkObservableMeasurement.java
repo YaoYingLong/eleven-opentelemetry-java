@@ -28,8 +28,7 @@ import javax.annotation.Nullable;
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
  */
-public final class SdkObservableMeasurement
-    implements ObservableLongMeasurement, ObservableDoubleMeasurement {
+public final class SdkObservableMeasurement implements ObservableLongMeasurement, ObservableDoubleMeasurement {
 
   private static final Logger logger = Logger.getLogger(SdkObservableMeasurement.class.getName());
 
@@ -112,18 +111,14 @@ public final class SdkObservableMeasurement
       logNoActiveReader();
       return;
     }
-
     Measurement measurement;
-
     MemoryMode memoryMode = activeReader.getReader().getMemoryMode();
     if (Objects.requireNonNull(memoryMode) == MemoryMode.IMMUTABLE_DATA) {
       measurement = createLong(startEpochNanos, epochNanos, value, attributes);
     } else {
-      MutableMeasurement.setLongMeasurement(
-          mutableMeasurement, startEpochNanos, epochNanos, value, attributes);
+      MutableMeasurement.setLongMeasurement(mutableMeasurement, startEpochNanos, epochNanos, value, attributes);
       measurement = mutableMeasurement;
     }
-
     doRecord(measurement);
   }
 

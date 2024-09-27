@@ -68,6 +68,7 @@ public final class SdkMeterProvider implements MeterProvider, Closeable {
     this.metricProducers = metricProducers;
     // clock传入的是SystemClock，exemplarFilter传入的一般默认为TraceBasedExemplarFilter
     this.sharedState = MeterProviderSharedState.create(clock, resource, exemplarFilter, startEpochNanos);
+    // 每次通过SdkMeterBuilder构建Meter时会根据名称生成InstrumentationScopeInfo，然后缓存下来
     this.registry = new ComponentRegistry<>(instrumentationLibraryInfo -> new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders));
     for (RegisteredReader registeredReader : registeredReaders) {
       List<MetricProducer> readerMetricProducers = new ArrayList<>(metricProducers);
@@ -204,6 +205,7 @@ public final class SdkMeterProvider implements MeterProvider, Closeable {
       if (metricProducers.isEmpty()) {
         return Collections.emptyList();
       }
+      // 这里两个地方其实是调用LeasedMetricProducer的produce方法，实际是调用具体SdkMeter的collectAll方法
       Resource resource = sharedState.getResource();
       if (metricProducers.size() == 1) {
         return metricProducers.get(0).produce(resource);

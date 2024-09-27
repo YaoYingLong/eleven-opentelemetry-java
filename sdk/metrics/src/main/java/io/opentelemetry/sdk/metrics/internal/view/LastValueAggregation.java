@@ -22,6 +22,9 @@ import io.opentelemetry.sdk.metrics.internal.exemplar.ExemplarReservoir;
  *
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
+ *
+ * 用于记录最后一个值，即当有新的值到来时，就会替换掉之前的值。
+ * 用于记录无法跨属性合并的值，例如CPU利用率百分比。
  */
 public final class LastValueAggregation implements Aggregation, AggregatorFactory {
 

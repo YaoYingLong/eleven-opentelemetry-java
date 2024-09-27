@@ -64,19 +64,8 @@ public final class BatchSpanProcessor implements SpanProcessor {
     return new BatchSpanProcessorBuilder(spanExporter);
   }
 
-  BatchSpanProcessor(SpanExporter spanExporter,
-      MeterProvider meterProvider,
-      long scheduleDelayNanos,
-      int maxQueueSize,
-      int maxExportBatchSize,
-      long exporterTimeoutNanos) {
-    this.worker = new Worker(
-            spanExporter,
-            meterProvider,
-            scheduleDelayNanos,
-            maxExportBatchSize,
-            exporterTimeoutNanos,
-            JcTools.newFixedSizeQueue(maxQueueSize));
+  BatchSpanProcessor(SpanExporter spanExporter, MeterProvider meterProvider, long scheduleDelayNanos, int maxQueueSize, int maxExportBatchSize, long exporterTimeoutNanos) {
+    this.worker = new Worker(spanExporter, meterProvider, scheduleDelayNanos, maxExportBatchSize, exporterTimeoutNanos, JcTools.newFixedSizeQueue(maxQueueSize));
     Thread workerThread = new DaemonThreadFactory(WORKER_THREAD_NAME).newThread(worker);
     workerThread.start();
   }
@@ -180,9 +169,14 @@ public final class BatchSpanProcessor implements SpanProcessor {
       this.exporterTimeoutNanos = exporterTimeoutNanos;
       this.queue = queue;
       this.signal = new ArrayBlockingQueue<>(1);
-      // Meter默认是SdkMeter（在SdkMeterProvider构造方法中被设置）, meterProvider默认是SdkMeterProvider
-      // build调用获取的内容是SdkMeterProvider构造方法设置的: new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders)
+      /**
+       * Meter默认是SdkMeter（在SdkMeterProvider构造方法中被设置）, meterProvider默认是SdkMeterProvider
+       * build调用获取的内容是SdkMeterProvider构造方法设置的: new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders)
+       * 这里设置了scope的名称为：io.opentelemetry.sdk.trace
+       */
       Meter meter = meterProvider.meterBuilder("io.opentelemetry.sdk.trace").build();
+      // 这里首先设置了Meter的名称，通过ofLongs相当于做了一个类型转换，设置description和unit
+      // unit字段是用来描述指定某个遥测数据的单位的
       meter.gaugeBuilder("queueSize")  // 通过SdkMeter构建返回SdkDoubleGaugeBuilder
           .ofLongs()    // 调用SdkDoubleGaugeBuilder构建返回SdkLongGaugeBuilder
           .setDescription("The number of items queued") // 这里是调用AbstractInstrumentBuilder的setDescription方法

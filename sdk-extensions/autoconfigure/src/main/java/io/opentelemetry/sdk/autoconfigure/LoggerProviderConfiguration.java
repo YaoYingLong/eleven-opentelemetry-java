@@ -28,8 +28,7 @@ import java.util.function.BiFunction;
 
 final class LoggerProviderConfiguration {
 
-  static void configureLoggerProvider(
-      SdkLoggerProviderBuilder loggerProviderBuilder,
+  static void configureLoggerProvider(SdkLoggerProviderBuilder loggerProviderBuilder,
       ConfigProperties config,
       SpiHelper spiHelper,
       MeterProvider meterProvider,
@@ -39,11 +38,9 @@ final class LoggerProviderConfiguration {
 
     loggerProviderBuilder.setLogLimits(() -> configureLogLimits(config));
 
-    Map<String, LogRecordExporter> exportersByName =
-        configureLogRecordExporters(config, spiHelper, logRecordExporterCustomizer, closeables);
+    Map<String, LogRecordExporter> exportersByName = configureLogRecordExporters(config, spiHelper, logRecordExporterCustomizer, closeables);
 
-    configureLogRecordProcessors(config, exportersByName, meterProvider, closeables)
-        .forEach(loggerProviderBuilder::addLogRecordProcessor);
+    configureLogRecordProcessors(config, exportersByName, meterProvider, closeables).forEach(loggerProviderBuilder::addLogRecordProcessor);
   }
 
   // Visible for testing
@@ -63,10 +60,8 @@ final class LoggerProviderConfiguration {
     }
 
     if (!exportersByNameCopy.isEmpty()) {
-      LogRecordExporter compositeLogRecordExporter =
-          LogRecordExporter.composite(exportersByNameCopy.values());
-      LogRecordProcessor logRecordProcessor =
-          configureBatchLogRecordProcessor(config, compositeLogRecordExporter, meterProvider);
+      LogRecordExporter compositeLogRecordExporter = LogRecordExporter.composite(exportersByNameCopy.values());
+      LogRecordProcessor logRecordProcessor = configureBatchLogRecordProcessor(config, compositeLogRecordExporter, meterProvider);
       closeables.add(logRecordProcessor);
       logRecordProcessors.add(logRecordProcessor);
     }
@@ -75,10 +70,8 @@ final class LoggerProviderConfiguration {
   }
 
   // VisibleForTesting
-  static BatchLogRecordProcessor configureBatchLogRecordProcessor(
-      ConfigProperties config, LogRecordExporter exporter, MeterProvider meterProvider) {
-    BatchLogRecordProcessorBuilder builder =
-        BatchLogRecordProcessor.builder(exporter).setMeterProvider(meterProvider);
+  static BatchLogRecordProcessor configureBatchLogRecordProcessor(ConfigProperties config, LogRecordExporter exporter, MeterProvider meterProvider) {
+    BatchLogRecordProcessorBuilder builder = BatchLogRecordProcessor.builder(exporter).setMeterProvider(meterProvider);
 
     Duration scheduleDelay = config.getDuration("otel.blrp.schedule.delay");
     if (scheduleDelay != null) {

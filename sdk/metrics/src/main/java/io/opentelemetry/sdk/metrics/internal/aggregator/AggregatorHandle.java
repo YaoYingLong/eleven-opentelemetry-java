@@ -76,8 +76,7 @@ public abstract class AggregatorHandle<T extends PointData, U extends ExemplarDa
    * values.
    */
   protected void doRecordLong(long value) {
-    throw new UnsupportedOperationException(
-        "This aggregator does not support recording long values.");
+    throw new UnsupportedOperationException("This aggregator does not support recording long values.");
   }
 
   public final void recordDouble(double value, Attributes attributes, Context context) {

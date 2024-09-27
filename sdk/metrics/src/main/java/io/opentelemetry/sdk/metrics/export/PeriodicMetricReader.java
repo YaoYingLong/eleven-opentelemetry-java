@@ -150,16 +150,17 @@ public final class PeriodicMetricReader implements MetricReader {
     private Scheduled() {}
 
     @Override
-    public void run() {
+    public void run() {  // 周期默认为1分钟
       // Ignore the CompletableResultCode from doRun() in order to keep run() asynchronous
       doRun();
     }
 
     // Runs a collect + export cycle.
-    CompletableResultCode doRun() {
+    CompletableResultCode doRun() {  // 周期默认为1分钟
       CompletableResultCode flushResult = new CompletableResultCode();
       if (exportAvailable.compareAndSet(true, false)) {
         try {
+          // 这里实际操作是调用SdkCollectionRegistration的collectAllMetrics
           Collection<MetricData> metricData = collectionRegistration.collectAllMetrics();
           if (metricData.isEmpty()) {
             logger.log(Level.FINE, "No metric data to export - skipping export.");

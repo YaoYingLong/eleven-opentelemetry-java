@@ -82,26 +82,20 @@ public final class ResourceConfiguration {
     return Resource.create(resourceAttributes.build(), SCHEMA_URL);
   }
 
-  static Resource configureResource(
-      ConfigProperties config,
-      SpiHelper spiHelper,
+  static Resource configureResource(ConfigProperties config, SpiHelper spiHelper,
       BiFunction<? super Resource, ConfigProperties, ? extends Resource> resourceCustomizer) {
     Resource result = Resource.getDefault();
 
-    Set<String> enabledProviders =
-        new HashSet<>(config.getList("otel.java.enabled.resource.providers"));
-    Set<String> disabledProviders =
-        new HashSet<>(config.getList("otel.java.disabled.resource.providers"));
+    Set<String> enabledProviders = new HashSet<>(config.getList("otel.java.enabled.resource.providers"));
+    Set<String> disabledProviders = new HashSet<>(config.getList("otel.java.disabled.resource.providers"));
     for (ResourceProvider resourceProvider : spiHelper.loadOrdered(ResourceProvider.class)) {
-      if (!enabledProviders.isEmpty()
-          && !enabledProviders.contains(resourceProvider.getClass().getName())) {
+      if (!enabledProviders.isEmpty() && !enabledProviders.contains(resourceProvider.getClass().getName())) {
         continue;
       }
       if (disabledProviders.contains(resourceProvider.getClass().getName())) {
         continue;
       }
-      if (resourceProvider instanceof ConditionalResourceProvider
-          && !((ConditionalResourceProvider) resourceProvider).shouldApply(config, result)) {
+      if (resourceProvider instanceof ConditionalResourceProvider && !((ConditionalResourceProvider) resourceProvider).shouldApply(config, result)) {
         continue;
       }
       result = result.merge(resourceProvider.createResource(config));
@@ -115,14 +109,11 @@ public final class ResourceConfiguration {
   // visible for testing
   static Resource filterAttributes(Resource resource, ConfigProperties configProperties) {
     Set<String> disabledKeys = new HashSet<>(configProperties.getList(DISABLED_ATTRIBUTE_KEYS));
-
-    ResourceBuilder builder =
-        resource.toBuilder().removeIf(attributeKey -> disabledKeys.contains(attributeKey.getKey()));
+    ResourceBuilder builder = resource.toBuilder().removeIf(attributeKey -> disabledKeys.contains(attributeKey.getKey()));
 
     if (resource.getSchemaUrl() != null) {
       builder.setSchemaUrl(resource.getSchemaUrl());
     }
-
     return builder.build();
   }
 

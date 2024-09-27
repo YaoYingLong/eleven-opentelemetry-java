@@ -34,8 +34,7 @@ final class SdkDoubleHistogram extends AbstractInstrument implements DoubleHisto
   @Override
   public void record(double value, Attributes attributes, Context context) {
     if (value < 0) {
-      throttlingLogger.log(
-          Level.WARNING,
+      throttlingLogger.log(Level.WARNING,
           "Histograms can only record non-negative values. Instrument "
               + getDescriptor().getName()
               + " has recorded a negative value.");
@@ -54,9 +53,7 @@ final class SdkDoubleHistogram extends AbstractInstrument implements DoubleHisto
     record(value, Attributes.empty());
   }
 
-  static final class SdkDoubleHistogramBuilder
-      extends AbstractInstrumentBuilder<SdkDoubleHistogramBuilder>
-      implements ExtendedDoubleHistogramBuilder {
+  static final class SdkDoubleHistogramBuilder extends AbstractInstrumentBuilder<SdkDoubleHistogramBuilder> implements ExtendedDoubleHistogramBuilder {
 
     SdkDoubleHistogramBuilder(
         MeterProviderSharedState meterProviderSharedState,
@@ -88,8 +85,7 @@ final class SdkDoubleHistogram extends AbstractInstrument implements DoubleHisto
     }
 
     @Override
-    public ExtendedDoubleHistogramBuilder setExplicitBucketBoundariesAdvice(
-        List<Double> bucketBoundaries) {
+    public ExtendedDoubleHistogramBuilder setExplicitBucketBoundariesAdvice(List<Double> bucketBoundaries) {
       adviceBuilder.setExplicitBucketBoundaries(bucketBoundaries);
       return this;
     }
