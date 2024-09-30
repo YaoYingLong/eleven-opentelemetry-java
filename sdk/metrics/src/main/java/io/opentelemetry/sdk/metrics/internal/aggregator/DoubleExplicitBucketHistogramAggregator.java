@@ -119,16 +119,11 @@ public final class DoubleExplicitBucketHistogramAggregator
     }
 
     @Override
-    protected HistogramPointData doAggregateThenMaybeReset(
-        long startEpochNanos,
-        long epochNanos,
-        Attributes attributes,
-        List<DoubleExemplarData> exemplars,
-        boolean reset) {
+    protected HistogramPointData doAggregateThenMaybeReset(long startEpochNanos, long epochNanos, Attributes attributes,
+        List<DoubleExemplarData> exemplars, boolean reset) {
       lock.lock();
       try {
-        HistogramPointData pointData =
-            ImmutableHistogramPointData.create(
+        HistogramPointData pointData = ImmutableHistogramPointData.create(
                 startEpochNanos,
                 epochNanos,
                 attributes,

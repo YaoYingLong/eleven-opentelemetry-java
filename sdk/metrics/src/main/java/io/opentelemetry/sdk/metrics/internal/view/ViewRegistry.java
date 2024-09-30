@@ -43,8 +43,7 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class ViewRegistry {
   static final View DEFAULT_VIEW = View.builder().build();
-  static final RegisteredView DEFAULT_REGISTERED_VIEW =
-      RegisteredView.create(
+  static final RegisteredView DEFAULT_REGISTERED_VIEW = RegisteredView.create(
           InstrumentSelector.builder().setName("*").build(),
           DEFAULT_VIEW,
           NOOP,
@@ -68,12 +67,12 @@ public final class ViewRegistry {
     instrumentDefaultRegisteredView = new HashMap<>();
     // 将所有的指标工具类型都添加到instrumentDefaultRegisteredView
     for (InstrumentType instrumentType : InstrumentType.values()) {
-      instrumentDefaultRegisteredView.put(
-          instrumentType,
+      instrumentDefaultRegisteredView.put(instrumentType,
           RegisteredView.create(
               InstrumentSelector.builder().setName("*").build(),
               View.builder()
-                  // 这里其实是调用的PeriodicMetricReader的getDefaultAggregation,这里应该是得到的DefaultAggregation
+                  // 这里其实是调用的PeriodicMetricReader的getDefaultAggregation，然后调用具体的Exporter的getDefaultAggregation方法
+                  // 这里应该是得到的DefaultAggregation
                   .setAggregation(defaultAggregationSelector.getDefaultAggregation(instrumentType))
                   .build(),
               AttributesProcessor.noop(),

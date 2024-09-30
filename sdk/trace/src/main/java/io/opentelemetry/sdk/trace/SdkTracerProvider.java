@@ -37,13 +37,7 @@ public final class SdkTracerProvider implements TracerProvider, Closeable {
     return new SdkTracerProviderBuilder();
   }
 
-  SdkTracerProvider(
-      Clock clock,
-      IdGenerator idsGenerator,
-      Resource resource,
-      Supplier<SpanLimits> spanLimitsSupplier,
-      Sampler sampler,
-      List<SpanProcessor> spanProcessors) {
+  SdkTracerProvider(Clock clock, IdGenerator idsGenerator, Resource resource, Supplier<SpanLimits> spanLimitsSupplier, Sampler sampler, List<SpanProcessor> spanProcessors) {
     this.sharedState = new TracerSharedState(clock, idsGenerator, resource, spanLimitsSupplier, sampler, spanProcessors);
     this.tracerSdkComponentRegistry = new ComponentRegistry<>(instrumentationScopeInfo -> new SdkTracer(sharedState, instrumentationScopeInfo));
   }

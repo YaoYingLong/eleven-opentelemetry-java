@@ -104,9 +104,7 @@ class ReservoirCell {
     if (attributes == null) {
       return null;
     }
-    DoubleExemplarData result =
-        ImmutableDoubleExemplarData.create(
-            filtered(attributes, pointAttributes), recordTime, spanContext, doubleValue);
+    DoubleExemplarData result = ImmutableDoubleExemplarData.create(filtered(attributes, pointAttributes), recordTime, spanContext, doubleValue);
     reset();
     return result;
   }

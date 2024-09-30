@@ -37,7 +37,6 @@ class SdkTracerBuilder implements TracerBuilder {
 
   @Override
   public Tracer build() {
-    return registry.get(
-        instrumentationScopeName, instrumentationScopeVersion, schemaUrl, Attributes.empty());
+    return registry.get(instrumentationScopeName, instrumentationScopeVersion, schemaUrl, Attributes.empty());
   }
 }

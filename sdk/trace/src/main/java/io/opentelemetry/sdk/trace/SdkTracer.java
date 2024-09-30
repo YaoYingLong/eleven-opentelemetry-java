@@ -31,8 +31,7 @@ final class SdkTracer implements Tracer {
       Tracer tracer = TracerProvider.noop().get(instrumentationScopeInfo.getName());
       return tracer.spanBuilder(spanName);
     }
-    return new SdkSpanBuilder(
-        spanName, instrumentationScopeInfo, sharedState, sharedState.getSpanLimits());
+    return new SdkSpanBuilder(spanName, instrumentationScopeInfo, sharedState, sharedState.getSpanLimits());
   }
 
   // Visible for testing

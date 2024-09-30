@@ -94,17 +94,20 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
               + ". Dropping measurement.");
       return;
     }
+    // 其实这里会为每个创建一个Handle
     AggregatorHandle<T, U> handle = getAggregatorHandle(attributes, context);
     handle.recordDouble(value, attributes, context);
   }
 
   private AggregatorHandle<T, U> getAggregatorHandle(Attributes attributes, Context context) {
     Objects.requireNonNull(attributes, "attributes");
+    // 其实这里的attributesProcessor默认是NoopAttributesProcessor，什么事情都没有干
     attributes = attributesProcessor.process(attributes, context);
     AggregatorHandle<T, U> handle = aggregatorHandles.get(attributes);
     if (handle != null) {
       return handle;
     }
+    // maxCardinality默认是1999，实在构建SdkMeterProvider就已经生成了
     if (aggregatorHandles.size() >= maxCardinality) {
       logger.log(Level.WARNING, "Instrument " + metricDescriptor.getSourceInstrument().getName() + " has exceeded the maximum allowed cardinality (" + maxCardinality + ").");
       // Return handle for overflow series, first checking if a handle already exists for it
@@ -116,7 +119,10 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     }
     // Get handle from pool if available, else create a new one.
     AggregatorHandle<T, U> newHandle = aggregatorHandlePool.poll();
+    // 初始时aggregatorHandlePool是空列表
     if (newHandle == null) {
+      // 这里会根据具体的aggregator创建具体的AggregatorHandle
+      // 其实Handle中持有的是调用具体的Aggregator的createAggregator方法创建的Supplier<ExemplarReservoir<LongExemplarData>>
       newHandle = aggregator.createHandle();
     }
     handle = aggregatorHandles.putIfAbsent(attributes, newHandle);
@@ -125,15 +131,16 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
 
   @Override
   public MetricData collect(Resource resource, InstrumentationScopeInfo instrumentationScopeInfo, long startEpochNanos, long epochNanos) {
+    // AggregationTemporality.DELTA表示自上一次执行exporter的指标的聚合
+    // AggregationTemporality.CUMULATIVE表示整个生命周期的指标的聚合
     boolean reset = aggregationTemporality == AggregationTemporality.DELTA;
-    long start = aggregationTemporality == AggregationTemporality.DELTA
-            ? registeredReader.getLastCollectEpochNanos()
-            : startEpochNanos;
-
+    long start = aggregationTemporality == AggregationTemporality.DELTA ? registeredReader.getLastCollectEpochNanos() : startEpochNanos;
     // Grab aggregated points.
     List<T> points = new ArrayList<>(aggregatorHandles.size());
     aggregatorHandles.forEach(
         (attributes, handle) -> {
+          // 这里是调用具体的Aggregator的doAggregateThenMaybeReset方法将指标数据封装成具体的PointData数据
+          // 注意reset参数很总要，涉及到是否要重置指标数据
           T point = handle.aggregateThenMaybeReset(start, epochNanos, attributes, reset);
           if (reset) {
             aggregatorHandles.remove(attributes, handle);
@@ -144,7 +151,6 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
             points.add(point);
           }
         });
-
     // Trim pool down if needed. pool.size() will only exceed maxCardinality if new handles are
     // created during collection.
     int toDelete = aggregatorHandlePool.size() - (maxCardinality + 1);
@@ -155,7 +161,7 @@ public final class DefaultSynchronousMetricStorage<T extends PointData, U extend
     if (points.isEmpty()) {
       return EmptyMetricData.getInstance();
     }
-
+    // 这里仅仅是调用具体的Aggregator做一次数据封装而已
     return aggregator.toMetricData(resource, instrumentationScopeInfo, metricDescriptor, points, aggregationTemporality);
   }
 

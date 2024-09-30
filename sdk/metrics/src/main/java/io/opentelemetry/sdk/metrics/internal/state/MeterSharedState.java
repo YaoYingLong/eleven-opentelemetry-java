@@ -32,6 +32,7 @@ public class MeterSharedState {
   private final Object collectLock = new Object();
   private final Object callbackLock = new Object();
 
+  // 这里保存的是通过AbstractInstrumentBuilder的registerLongAsynchronousInstrument和registerDoubleAsynchronousInstrument方法注册的函数表达式
   @GuardedBy("callbackLock")
   private final List<CallbackRegistration> callbackRegistrations = new ArrayList<>();
 
@@ -39,16 +40,13 @@ public class MeterSharedState {
 
   private final InstrumentationScopeInfo instrumentationScopeInfo;
 
-  private MeterSharedState(InstrumentationScopeInfo instrumentationScopeInfo,
-      List<RegisteredReader> registeredReaders) {
+  private MeterSharedState(InstrumentationScopeInfo instrumentationScopeInfo, List<RegisteredReader> registeredReaders) {
     this.instrumentationScopeInfo = instrumentationScopeInfo;
     // 这里其实是遍历从SdkMeter中调用传入的registeredReaders，然后为每个RegisteredReader生成一个MetricStorageRegistry
-    this.readerStorageRegistries = registeredReaders.stream()
-        .collect(toMap(Function.identity(), unused -> new MetricStorageRegistry()));
+    this.readerStorageRegistries = registeredReaders.stream().collect(toMap(Function.identity(), unused -> new MetricStorageRegistry()));
   }
 
-  public static MeterSharedState create(InstrumentationScopeInfo instrumentationScopeInfo,
-      List<RegisteredReader> registeredReaders) {
+  public static MeterSharedState create(InstrumentationScopeInfo instrumentationScopeInfo, List<RegisteredReader> registeredReaders) {
     return new MeterSharedState(instrumentationScopeInfo, registeredReaders);
   }
 
@@ -93,11 +91,23 @@ public class MeterSharedState {
     // Collections across all readers are sequential
     synchronized (collectLock) {
       // 这里通过调用CallbackRegistration的invokeCallback，真正调用通过buildWithCallback方法注册进来的异步方法
+      // 也就是调用生成的SdkObservableMeasurement的record方法，这里其实生成points数据，并并存储到对应的MetricStorage中
       for (CallbackRegistration callbackRegistration : currentRegisteredCallbacks) {
         callbackRegistration.invokeCallback(registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
       }
 
-      // 这里是处理同步
+      /**
+       * 这里其实就是将所有MetricStorage中存储的数据获取出来构建成MetricData，并合并返回，包括同步方式和异步方式的,这里是怎么做到对异步的处理的
+       * 对于异步方式：
+       *    因为在registerObservableMeasurement中同时将生成的AsynchronousMetricStorage
+       *    注册到了readerStorageRegistries的MetricStorageRegistry中也同时将AsynchronousMetricStorage保存到了SdkObservableMeasurement
+       *    在上面执行SdkObservableMeasurement的record方法时会将数据保存到AsynchronousMetricStorage
+       *
+       * 对应同步方式：
+       *  registerSynchronousMetricStorage中同时将生成的生成的DefaultSynchronousMetricStorage
+       *  注册到了readerStorageRegistries的MetricStorageRegistry中也同时将DefaultSynchronousMetricStorage保存到了MultiWritableMetricStorage
+       *  最终保存到了具体的如SdkDoubleCounter中，在执行add方法时就将数据生成了
+       */
       Collection<MetricStorage> storages = Objects.requireNonNull(readerStorageRegistries.get(registeredReader)).getStorages();
       List<MetricData> result = new ArrayList<>(storages.size());
       for (MetricStorage storage : storages) {

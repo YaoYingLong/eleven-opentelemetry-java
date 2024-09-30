@@ -124,10 +124,11 @@ abstract class AbstractInstrumentBuilder<BuilderT extends AbstractInstrumentBuil
   final SdkObservableInstrument registerLongAsynchronousInstrument(InstrumentType type, Consumer<ObservableLongMeasurement> updater) {
     SdkObservableMeasurement sdkObservableMeasurement = buildObservableMeasurement(type);
     // 将从Worker传进来的result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)封装到线程中
+    // 这里可以明显的看到生成的SdkObservableMeasurement与传入的函数表达式绑定，其实就是在函数表达式中调用SdkObservableMeasurement的record方法
     Runnable runnable = () -> updater.accept(sdkObservableMeasurement);
     // 在CallbackRegistration的invokeCallback中会调用Runnable的run方法
     CallbackRegistration callbackRegistration = CallbackRegistration.create(Collections.singletonList(sdkObservableMeasurement), runnable);
-    // 将生成的callbackRegistration注册到meterSharedState中
+    // 在SdkMeter构造方法中创建的MeterSharedState，将生成的callbackRegistration注册到meterSharedState中
     meterSharedState.registerCallback(callbackRegistration);
     return new SdkObservableInstrument(meterSharedState, callbackRegistration);
   }

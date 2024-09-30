@@ -38,14 +38,12 @@ class RandomFixedSizeExemplarReservoir<T extends ExemplarData>
 
   static RandomFixedSizeExemplarReservoir<LongExemplarData> createLong(
       Clock clock, int size, Supplier<Random> randomSupplier) {
-    return new RandomFixedSizeExemplarReservoir<>(
-        clock, size, randomSupplier, ReservoirCell::getAndResetLong);
+    return new RandomFixedSizeExemplarReservoir<>(clock, size, randomSupplier, ReservoirCell::getAndResetLong);
   }
 
   static RandomFixedSizeExemplarReservoir<DoubleExemplarData> createDouble(
       Clock clock, int size, Supplier<Random> randomSupplier) {
-    return new RandomFixedSizeExemplarReservoir<>(
-        clock, size, randomSupplier, ReservoirCell::getAndResetDouble);
+    return new RandomFixedSizeExemplarReservoir<>(clock, size, randomSupplier, ReservoirCell::getAndResetDouble);
   }
 
   static class RandomCellSelector implements ReservoirCellSelector {

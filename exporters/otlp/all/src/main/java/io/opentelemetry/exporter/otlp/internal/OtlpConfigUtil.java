@@ -63,9 +63,7 @@ public final class OtlpConfigUtil {
       Consumer<RetryPolicy> setRetryPolicy) {
     String protocol = getOtlpProtocol(dataType, config);
     boolean isHttpProtobuf = protocol.equals(PROTOCOL_HTTP_PROTOBUF);
-    URL endpoint =
-        validateEndpoint(
-            config.getString("otel.exporter.otlp." + dataType + ".endpoint"), isHttpProtobuf);
+    URL endpoint = validateEndpoint(config.getString("otel.exporter.otlp." + dataType + ".endpoint"), isHttpProtobuf);
     if (endpoint != null) {
       if (endpoint.getPath().isEmpty()) {
         endpoint = createUrl(endpoint, "/");
@@ -107,15 +105,9 @@ public final class OtlpConfigUtil {
       setTimeout.accept(timeout);
     }
 
-    String certificatePath =
-        config.getString(
-            determinePropertyByType(config, "otel.exporter.otlp", dataType, "certificate"));
-    String clientKeyPath =
-        config.getString(
-            determinePropertyByType(config, "otel.exporter.otlp", dataType, "client.key"));
-    String clientKeyChainPath =
-        config.getString(
-            determinePropertyByType(config, "otel.exporter.otlp", dataType, "client.certificate"));
+    String certificatePath = config.getString(determinePropertyByType(config, "otel.exporter.otlp", dataType, "certificate"));
+    String clientKeyPath = config.getString(determinePropertyByType(config, "otel.exporter.otlp", dataType, "client.key"));
+    String clientKeyChainPath = config.getString(determinePropertyByType(config, "otel.exporter.otlp", dataType, "client.certificate"));
 
     if (clientKeyPath != null && clientKeyChainPath == null) {
       throw new ConfigurationException("Client key provided but certification chain is missing");
@@ -135,8 +127,7 @@ public final class OtlpConfigUtil {
       setClientTls.accept(clientKeyBytes, clientKeyChainBytes);
     }
 
-    boolean retryEnabled =
-        config.getBoolean("otel.experimental.exporter.otlp.retry.enabled", false);
+    boolean retryEnabled = config.getBoolean("otel.experimental.exporter.otlp.retry.enabled", false);
     if (retryEnabled) {
       setRetryPolicy.accept(RetryPolicy.getDefault());
     }

@@ -43,8 +43,7 @@ class HistogramExemplarReservoir extends FixedSizeExemplarReservoir<DoubleExempl
     }
 
     @Override
-    public int reservoirCellIndexFor(
-        ReservoirCell[] cells, double value, Attributes attributes, Context context) {
+    public int reservoirCellIndexFor(ReservoirCell[] cells, double value, Attributes attributes, Context context) {
       return ExplicitBucketHistogramUtils.findBucketIndex(boundaries, value);
     }
 

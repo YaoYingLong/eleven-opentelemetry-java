@@ -181,23 +181,16 @@ final class SdkSpanBuilder implements SpanBuilder {
       // New child span.
       traceId = parentSpanContext.getTraceId();
     }
-    List<LinkData> immutableLinks =
-        links == null ? Collections.emptyList() : Collections.unmodifiableList(links);
+    List<LinkData> immutableLinks = links == null ? Collections.emptyList() : Collections.unmodifiableList(links);
     // Avoid any possibility to modify the links list by adding links to the Builder after the
     // startSpan is called. If that happens all the links will be added in a new list.
     links = null;
     Attributes immutableAttributes = attributes == null ? Attributes.empty() : attributes;
-    SamplingResult samplingResult =
-        tracerSharedState
-            .getSampler()
-            .shouldSample(
-                parentContext, traceId, spanName, spanKind, immutableAttributes, immutableLinks);
+    SamplingResult samplingResult = tracerSharedState.getSampler().shouldSample(parentContext, traceId, spanName, spanKind, immutableAttributes, immutableLinks);
     SamplingDecision samplingDecision = samplingResult.getDecision();
 
-    TraceState samplingResultTraceState =
-        samplingResult.getUpdatedTraceState(parentSpanContext.getTraceState());
-    SpanContext spanContext =
-        ImmutableSpanContext.create(
+    TraceState samplingResultTraceState = samplingResult.getUpdatedTraceState(parentSpanContext.getTraceState());
+    SpanContext spanContext = ImmutableSpanContext.create(
             traceId,
             spanId,
             isSampled(samplingDecision) ? TraceFlags.getSampled() : TraceFlags.getDefault(),

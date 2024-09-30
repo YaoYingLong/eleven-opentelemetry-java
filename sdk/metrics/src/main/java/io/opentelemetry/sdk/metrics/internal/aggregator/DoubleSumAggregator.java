@@ -129,15 +129,10 @@ public final class DoubleSumAggregator
     }
 
     @Override
-    protected DoublePointData doAggregateThenMaybeReset(
-        long startEpochNanos,
-        long epochNanos,
-        Attributes attributes,
-        List<DoubleExemplarData> exemplars,
-        boolean reset) {
+    protected DoublePointData doAggregateThenMaybeReset(long startEpochNanos, long epochNanos,
+        Attributes attributes, List<DoubleExemplarData> exemplars, boolean reset) {
       double value = reset ? this.current.sumThenReset() : this.current.sum();
-      return ImmutableDoublePointData.create(
-          startEpochNanos, epochNanos, attributes, value, exemplars);
+      return ImmutableDoublePointData.create(startEpochNanos, epochNanos, attributes, value, exemplars);
     }
 
     @Override

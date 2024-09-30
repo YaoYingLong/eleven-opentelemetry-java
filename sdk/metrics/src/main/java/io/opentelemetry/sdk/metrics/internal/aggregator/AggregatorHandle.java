@@ -37,8 +37,7 @@ public abstract class AggregatorHandle<T extends PointData, U extends ExemplarDa
    * Returns the current value into as {@link T}. If {@code reset} is {@code true}, resets the
    * current value in this {@code Aggregator}.
    */
-  public final T aggregateThenMaybeReset(
-      long startEpochNanos, long epochNanos, Attributes attributes, boolean reset) {
+  public final T aggregateThenMaybeReset(long startEpochNanos, long epochNanos, Attributes attributes, boolean reset) {
     return doAggregateThenMaybeReset(
         startEpochNanos,
         epochNanos,
@@ -80,6 +79,7 @@ public abstract class AggregatorHandle<T extends PointData, U extends ExemplarDa
   }
 
   public final void recordDouble(double value, Attributes attributes, Context context) {
+    // 这里其实就是真正执行在调用具体的Aggregator的createAggregator方法创建的Supplier<ExemplarReservoir<LongExemplarData>>
     exemplarReservoir.offerDoubleMeasurement(value, attributes, context);
     recordDouble(value);
   }

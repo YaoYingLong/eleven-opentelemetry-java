@@ -184,7 +184,6 @@ public final class OtlpHttpMetricExporterBuilder {
    * @return a new exporter's instance
    */
   public OtlpHttpMetricExporter build() {
-    return new OtlpHttpMetricExporter(
-        delegate, delegate.build(), aggregationTemporalitySelector, defaultAggregationSelector);
+    return new OtlpHttpMetricExporter(delegate, delegate.build(), aggregationTemporalitySelector, defaultAggregationSelector);
   }
 }

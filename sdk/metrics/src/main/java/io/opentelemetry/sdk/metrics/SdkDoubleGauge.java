@@ -39,8 +39,7 @@ final class SdkDoubleGauge extends AbstractInstrument implements DoubleGauge {
     set(increment, Attributes.empty());
   }
 
-  static final class SdkDoubleGaugeBuilder extends AbstractInstrumentBuilder<SdkDoubleGaugeBuilder>
-      implements ExtendedDoubleGaugeBuilder {
+  static final class SdkDoubleGaugeBuilder extends AbstractInstrumentBuilder<SdkDoubleGaugeBuilder> implements ExtendedDoubleGaugeBuilder {
 
     SdkDoubleGaugeBuilder(MeterProviderSharedState meterProviderSharedState, MeterSharedState meterSharedState, String name) {
       super(

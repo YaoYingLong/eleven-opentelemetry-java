@@ -41,8 +41,7 @@ import java.util.logging.Logger;
  * <p>This class is internal and is hence not for public use. Its APIs are unstable and can change
  * at any time.
  */
-final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarData>
-    implements MetricStorage {
+final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarData> implements MetricStorage {
   private static final Logger logger = Logger.getLogger(AsynchronousMetricStorage.class.getName());
 
   private final ThrottlingLogger throttlingLogger = new ThrottlingLogger(logger);
@@ -79,8 +78,7 @@ final class AsynchronousMetricStorage<T extends PointData, U extends ExemplarDat
       int maxCardinality) {
     this.registeredReader = registeredReader;
     this.metricDescriptor = metricDescriptor;
-    this.aggregationTemporality = registeredReader.getReader()
-            .getAggregationTemporality(metricDescriptor.getSourceInstrument().getType());
+    this.aggregationTemporality = registeredReader.getReader().getAggregationTemporality(metricDescriptor.getSourceInstrument().getType());
     this.memoryMode = registeredReader.getReader().getMemoryMode();
     this.aggregator = aggregator;
     this.attributesProcessor = attributesProcessor;

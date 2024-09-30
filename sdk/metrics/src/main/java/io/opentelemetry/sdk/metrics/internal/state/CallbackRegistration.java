@@ -71,8 +71,7 @@ public final class CallbackRegistration {
     if (!hasStorages) {
       return;
     }
-    // Set the active reader on each observable measurement so that measurements are only recorded
-    // to relevant storages
+    // Set the active reader on each observable measurement so that measurements are only recorded to relevant storages
     observableMeasurements.forEach(observableMeasurement -> observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
     /**
      * callback.run()这里真正调用通过buildWithCallback方法注册进来的异步方法，其实就是一个函数表达式
