@@ -29,20 +29,16 @@ final class ParentBasedSampler implements Sampler {
   private final Sampler localParentSampled;
   private final Sampler localParentNotSampled;
 
-  ParentBasedSampler(
-      Sampler root,
+  ParentBasedSampler(Sampler root,
       @Nullable Sampler remoteParentSampled,
       @Nullable Sampler remoteParentNotSampled,
       @Nullable Sampler localParentSampled,
       @Nullable Sampler localParentNotSampled) {
     this.root = root;
-    this.remoteParentSampled =
-        remoteParentSampled == null ? Sampler.alwaysOn() : remoteParentSampled;
-    this.remoteParentNotSampled =
-        remoteParentNotSampled == null ? Sampler.alwaysOff() : remoteParentNotSampled;
+    this.remoteParentSampled = remoteParentSampled == null ? Sampler.alwaysOn() : remoteParentSampled;
+    this.remoteParentNotSampled = remoteParentNotSampled == null ? Sampler.alwaysOff() : remoteParentNotSampled;
     this.localParentSampled = localParentSampled == null ? Sampler.alwaysOn() : localParentSampled;
-    this.localParentNotSampled =
-        localParentNotSampled == null ? Sampler.alwaysOff() : localParentNotSampled;
+    this.localParentNotSampled = localParentNotSampled == null ? Sampler.alwaysOff() : localParentNotSampled;
   }
 
   // If a parent is set, always follows the same sampling decision as the parent.
@@ -56,23 +52,18 @@ final class ParentBasedSampler implements Sampler {
       Attributes attributes,
       List<LinkData> parentLinks) {
     SpanContext parentSpanContext = Span.fromContext(parentContext).getSpanContext();
-    if (!parentSpanContext.isValid()) {
-      return this.root.shouldSample(
-          parentContext, traceId, name, spanKind, attributes, parentLinks);
+    if (!parentSpanContext.isValid()) { // 父Span是无效的
+      return this.root.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks);
     }
 
     if (parentSpanContext.isRemote()) {
       return parentSpanContext.isSampled()
-          ? this.remoteParentSampled.shouldSample(
-              parentContext, traceId, name, spanKind, attributes, parentLinks)
-          : this.remoteParentNotSampled.shouldSample(
-              parentContext, traceId, name, spanKind, attributes, parentLinks);
+          ? this.remoteParentSampled.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks)
+          : this.remoteParentNotSampled.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks);
     }
     return parentSpanContext.isSampled()
-        ? this.localParentSampled.shouldSample(
-            parentContext, traceId, name, spanKind, attributes, parentLinks)
-        : this.localParentNotSampled.shouldSample(
-            parentContext, traceId, name, spanKind, attributes, parentLinks);
+        ? this.localParentSampled.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks)
+        : this.localParentNotSampled.shouldSample(parentContext, traceId, name, spanKind, attributes, parentLinks);
   }
 
   @Override

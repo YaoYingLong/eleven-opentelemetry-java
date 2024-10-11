@@ -73,6 +73,7 @@ final class TraceIdRatioBasedSampler implements Sampler {
     // while allowing for a (very) small chance of *not* sampling if the id == Long.MAX_VALUE.
     // This is considered a reasonable tradeoff for the simplicity/performance requirements (this
     // code is executed in-line for every Span creation).
+    // 这里就是计算traceId的值与idUpperBound进行比较，小于则导出，大于等于则不导出
     return Math.abs(getTraceIdRandomPart(traceId)) < idUpperBound
         ? POSITIVE_SAMPLING_RESULT
         : NEGATIVE_SAMPLING_RESULT;

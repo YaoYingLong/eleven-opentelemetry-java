@@ -151,8 +151,7 @@ final class TracerProviderConfiguration {
         return Sampler.alwaysOff();
       case "traceidratio":  // 看采样比
         {
-          double ratio =
-              config.getDouble("otel.traces.sampler.arg", DEFAULT_TRACEIDRATIO_SAMPLE_RATIO);
+          double ratio = config.getDouble("otel.traces.sampler.arg", DEFAULT_TRACEIDRATIO_SAMPLE_RATIO);
           return Sampler.traceIdRatioBased(ratio);
         }
       case PARENTBASED_ALWAYS_ON:   // 看父Span的设置

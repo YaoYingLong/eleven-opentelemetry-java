@@ -167,6 +167,7 @@ final class SdkSpanBuilder implements SpanBuilder {
   @SuppressWarnings({"unchecked", "rawtypes"})
   public Span startSpan() {
     Context parentContext = parent == null ? Context.current() : parent;
+    // 如果parentContext为空或从parentContext中获取不到opentelemetry-trace-span-key，返回PropagatedSpan.INVALID
     Span parentSpan = Span.fromContext(parentContext);
     SpanContext parentSpanContext = parentSpan.getSpanContext();
     String traceId;
@@ -193,6 +194,7 @@ final class SdkSpanBuilder implements SpanBuilder {
     SpanContext spanContext = ImmutableSpanContext.create(
             traceId,
             spanId,
+            // 与采样相关：TraceFlags.getSampled()返回true，TraceFlags.getDefault()返回false
             isSampled(samplingDecision) ? TraceFlags.getSampled() : TraceFlags.getDefault(),
             samplingResultTraceState,
             /* remote= */ false,
@@ -211,6 +213,8 @@ final class SdkSpanBuilder implements SpanBuilder {
     AttributesMap recordedAttributes = attributes;
     attributes = null;
 
+    // 这里parentSpan虽然传入的是一个Context，但是SdkSpan.startSpan中其实new SdkSpan再次调用了parentSpan.getSpanContext()
+    // 所以最终设置到Span中的只有SpanContext
     return SdkSpan.startSpan(
         spanContext,
         spanName,

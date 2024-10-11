@@ -25,6 +25,9 @@ package io.opentelemetry.context;
 import java.util.Arrays;
 import javax.annotation.Nullable;
 
+/**
+ * 其实是通过数组的方式来存储Key-Value
+ */
 final class ArrayBasedContext implements Context {
 
   private static final Context ROOT = new ArrayBasedContext(new Object[0]);
@@ -69,13 +72,17 @@ final class ArrayBasedContext implements Context {
     for (int i = 0; i < entries.length; i += 2) {
       if (entries[i] == key) {
         if (entries[i + 1] == value) {
+          // 如果数据已经存在了，直接返回
           return this;
         }
+        // 如果是值更新，将原来的数组拷贝一遍，并更新原来的数组下标对应的值
         Object[] newEntries = entries.clone();
         newEntries[i + 1] = value;
+        // 将新构造的数组返回
         return new ArrayBasedContext(newEntries);
       }
     }
+    // 如果是不存在的key，拷贝原来的数组并扩容2个槽位，用于存放key-value
     Object[] newEntries = Arrays.copyOf(entries, entries.length + 2);
     newEntries[newEntries.length - 2] = key;
     newEntries[newEntries.length - 1] = value;

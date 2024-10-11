@@ -77,7 +77,9 @@ final class LazyStorage {
 
   static {
     AtomicReference<Throwable> deferredStorageFailure = new AtomicReference<>();
+    // 这里一般返回的是ContextStorage.defaultStorage()
     ContextStorage created = createStorage(deferredStorageFailure);
+    // 其实这里就是-Dio.opentelemetry.context.enableStrictContext=true开启上下文传播的调试机制
     if (Boolean.getBoolean(ENABLE_STRICT_CONTEXT_PROVIDER_PROPERTY)) {
       created = StrictContextStorage.create(created);
     }

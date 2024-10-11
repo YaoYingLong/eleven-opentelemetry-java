@@ -80,6 +80,7 @@ public final class BatchSpanProcessor implements SpanProcessor {
 
   @Override
   public void onEnd(ReadableSpan span) {
+    // 如果Span为空或不采样，则直接返回，一般默认是全采样
     if (span == null || !span.getSpanContext().isSampled()) {
       return;
     }

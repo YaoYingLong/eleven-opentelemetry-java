@@ -69,6 +69,7 @@ public interface ContextStorage {
    * Scope#close()}.
    */
   static ContextStorage get() {
+    // 这里返回的是ThreadLocalContextStorage，其实本身是一个ThreadLocal，其实就是通过下面的defaultStorage方法获得
     return LazyStorage.get();
   }
 

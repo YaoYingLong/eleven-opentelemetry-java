@@ -11,7 +11,9 @@ import io.opentelemetry.context.Context;
 import io.opentelemetry.sdk.trace.data.LinkData;
 import java.util.List;
 import javax.annotation.concurrent.Immutable;
-
+/**
+ * 这里其实是构建SamplingDecision.RECORD_AND_SAMPLE,即Span被记录和采样
+ */
 @Immutable
 enum AlwaysOnSampler implements Sampler {
   INSTANCE;

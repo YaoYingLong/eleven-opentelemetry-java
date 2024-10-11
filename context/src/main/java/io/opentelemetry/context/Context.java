@@ -100,7 +100,10 @@ public interface Context {
 
   /** Return the context associated with the current {@link Scope}. */
   static Context current() {
+    // 这里ContextStorage.get()得到的是ThreadLocalContextStorage
+    // current方法其实就是调用ThreadLocal.get方法
     Context current = ContextStorage.get().current();
+    // 这里调用的root方法其实返回的是new ArrayBasedContext(new Object[0])
     return current != null ? current : root();
   }
 
@@ -113,6 +116,7 @@ public interface Context {
    * is only a workaround hiding an underlying context propagation issue.
    */
   static Context root() {
+    // 这里调用的root方法其实返回的是new ArrayBasedContext(new Object[0])
     return ContextStorage.get().root();
   }
 
@@ -208,6 +212,14 @@ public interface Context {
    * }
    * assert Context.current() == prevCtx;
    * }</pre>
+   *
+   * 其实这里是判断当前的Current与通过Context.current()获取的Context是否相等，如果相等返回NoopScope
+   *
+   * 其实就是判断当前的Current与ThreadLocal中持有的Current是否是同一个，是的话就不用做任何操作所以返回NoopScope
+   *
+   * 如果不是同一个Current，会把当前的Current设置到ThreadLocal中，同时把当前的Current和之前ThreadLocal中Current一起封装到ScopeImpl中
+   * 当调用Scope的close方法时，其实就是将之前ThreadLocal中Current再设置回去
+   *
    */
   @MustBeClosed
   default Scope makeCurrent() {

@@ -12,6 +12,9 @@ import io.opentelemetry.sdk.trace.data.LinkData;
 import java.util.List;
 import javax.annotation.concurrent.Immutable;
 
+/**
+ * 这里其实是构建SamplingDecision.DROP,即Span不会被导出
+ */
 @Immutable
 enum AlwaysOffSampler implements Sampler {
   INSTANCE;

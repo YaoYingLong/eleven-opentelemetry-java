@@ -11,15 +11,20 @@ import javax.annotation.concurrent.Immutable;
 
 @Immutable
 final class ImmutableTraceFlags implements TraceFlags {
+  // 定义255的ImmutableTraceFlags数组
   private static final ImmutableTraceFlags[] INSTANCES = buildInstances();
   // Bit to represent whether trace is sampled or not.
   private static final byte SAMPLED_BIT = 0x01;
 
+  // 默认的isSampled为false
   static final ImmutableTraceFlags DEFAULT = fromByte((byte) 0x00);
+  // 默认的isSampled为true
   static final ImmutableTraceFlags SAMPLED = fromByte(SAMPLED_BIT);
   static final int HEX_LENGTH = 2;
 
+  // hexRep从0x00到0xFF
   private final String hexRep;
+  // byteRep的值其实就是[0-127, -128-0)
   private final byte byteRep;
 
   // Implementation of the TraceFlags.fromHex().
@@ -51,6 +56,7 @@ final class ImmutableTraceFlags implements TraceFlags {
 
   @Override
   public boolean isSampled() {
+    // byteRep为偶数的都返回false，为奇数都返回true
     return (this.byteRep & SAMPLED_BIT) != 0;
   }
 

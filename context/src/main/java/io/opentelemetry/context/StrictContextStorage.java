@@ -39,6 +39,14 @@ import javax.annotation.Nullable;
  * <p>Calling {@link StrictContextStorage#close()} will check at the moment it's called whether
  * there are any scopes that have been opened but not closed yet. This could be called at the end of
  * a unit test to ensure the tested code cleaned up scopes correctly.
+ *
+ * 用于跟踪打开和关闭的Scope，如果Scope关闭不正确或根本没有关闭，则报告调用方信息。
+ * <p>调用 {@link StrictContextStorageclose（）} 将在调用时检查是否有任何已打开但尚未关闭的作用域。
+ * 这可以在单元测试结束时调用，以确保被测试的代码正确清理了范围。
+ *
+ * 提供的一种用于上下文传播的调试机制，可以通过在JVM 参数中设置-Dio.opentelemetry.context.enableStrictContext=true来启用该机制。
+ * 这将启用一个严格的检查器，确保Scope在正确的线程上关闭，并且在关闭之前不会被垃圾回收。这是通过一些相对昂贵的堆栈跟踪遍历来完成的。
+ * 强烈建议在单元测试和暂存环境中启用此功能
  */
 final class StrictContextStorage implements ContextStorage, AutoCloseable {
 
