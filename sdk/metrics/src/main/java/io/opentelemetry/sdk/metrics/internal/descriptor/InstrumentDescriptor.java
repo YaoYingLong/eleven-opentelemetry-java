@@ -59,8 +59,7 @@ public abstract class InstrumentDescriptor {
   /**
    * 目前支持的类型：
    *   LONG,
-   *   DOUBLE,
-   * @return
+   *   DOUBLE
    */
   public abstract InstrumentValueType getValueType();
 

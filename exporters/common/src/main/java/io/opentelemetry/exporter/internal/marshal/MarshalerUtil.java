@@ -56,13 +56,13 @@ public final class MarshalerUtil {
           Function<T, InstrumentationScopeInfo> getInstrumentationScope,
           Function<T, U> createMarshaler) {
     // expectedMaxSize of 8 means initial map capacity of 16 to match HashMap
-    IdentityHashMap<Resource, Map<InstrumentationScopeInfo, List<U>>> result =
-        new IdentityHashMap<>(8);
+    IdentityHashMap<Resource, Map<InstrumentationScopeInfo, List<U>>> result = new IdentityHashMap<>(8);
     for (T data : dataList) {
+      // 按照Resource分组
       Map<InstrumentationScopeInfo, List<U>> scopeInfoListMap =
           result.computeIfAbsent(getResource.apply(data), unused -> new IdentityHashMap<>(8));
-      List<U> marshalerList =
-          scopeInfoListMap.computeIfAbsent(
+      // 再按照scope分组
+      List<U> marshalerList = scopeInfoListMap.computeIfAbsent(
               getInstrumentationScope.apply(data), unused -> new ArrayList<>());
       marshalerList.add(createMarshaler.apply(data));
     }

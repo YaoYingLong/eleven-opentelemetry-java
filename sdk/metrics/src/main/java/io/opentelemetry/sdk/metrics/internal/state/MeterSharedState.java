@@ -96,7 +96,7 @@ public class MeterSharedState {
         callbackRegistration.invokeCallback(registeredReader, meterProviderSharedState.getStartEpochNanos(), epochNanos);
       }
 
-      /**
+      /*
        * 这里其实就是将所有MetricStorage中存储的数据获取出来构建成MetricData，并合并返回，包括同步方式和异步方式的,这里是怎么做到对异步的处理的
        * 对于异步方式：
        *    因为在registerObservableMeasurement中同时将生成的AsynchronousMetricStorage
@@ -144,7 +144,7 @@ public class MeterSharedState {
       RegisteredReader reader = entry.getKey();
       // registry获取到的目前都是一个new MetricStorageRegistry();
       MetricStorageRegistry registry = entry.getValue();
-      /**
+      /*
        * 其实这个地方比较坑，从代码逻辑上看在SdkMeterProvider中调用ViewRegistry构造方法传入的List<RegisteredView>是空列表
        * 在findViews中先遍历registeredViews，如果没有找到，会再调用通过类型从ViewRegistry构造方法中初始化的全类型列表中获取
        */

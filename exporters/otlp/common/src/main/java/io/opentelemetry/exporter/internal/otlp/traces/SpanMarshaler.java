@@ -40,8 +40,7 @@ final class SpanMarshaler extends MarshalerWithSize {
 
   // Because SpanMarshaler is always part of a repeated field, it cannot return "null".
   static SpanMarshaler create(SpanData spanData) {
-    KeyValueMarshaler[] attributeMarshalers =
-        KeyValueMarshaler.createRepeated(spanData.getAttributes());
+    KeyValueMarshaler[] attributeMarshalers = KeyValueMarshaler.createRepeated(spanData.getAttributes());
     SpanEventMarshaler[] spanEventMarshalers =
         SpanEventMarshaler.createRepeated(spanData.getEvents());
     SpanLinkMarshaler[] spanLinkMarshalers = SpanLinkMarshaler.createRepeated(spanData.getLinks());

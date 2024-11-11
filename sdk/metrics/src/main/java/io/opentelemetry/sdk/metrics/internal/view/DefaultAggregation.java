@@ -61,7 +61,7 @@ public final class DefaultAggregation implements Aggregation, AggregatorFactory 
   @Override
   public <T extends PointData, U extends ExemplarData> Aggregator<T, U> createAggregator(
       InstrumentDescriptor instrumentDescriptor, ExemplarFilter exemplarFilter) {
-    /**
+    /*
      * 首先通过resolve方法从InstrumentDescriptor中存储的InstrumentType类型来创建具体的Aggregation
      * 然后再调用具体的Aggregation的createAggregator方法
      *   COUNTER: SumAggregation

@@ -46,9 +46,10 @@ public final class OtlpGrpcSpanExporterBuilder {
         new GrpcExporterBuilder<>(
             "otlp",
             "span",
-            DEFAULT_TIMEOUT_SECS,
-            DEFAULT_ENDPOINT,
+            DEFAULT_TIMEOUT_SECS, // 默认10s
+            DEFAULT_ENDPOINT,     // 默认localhost
             () -> MarshalerTraceServiceGrpc::newFutureStub,
+            // /opentelemetry.proto.collector.trace.v1.TraceService/Export
             GRPC_ENDPOINT_PATH));
   }
 

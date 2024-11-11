@@ -140,7 +140,9 @@ public final class BatchSpanProcessor implements SpanProcessor {
     private final SpanExporter spanExporter;
     // 默认5s
     private final long scheduleDelayNanos;
+    // 默认大小为512
     private final int maxExportBatchSize;
+    // 默认为30s
     private final long exporterTimeoutNanos;
 
     private long nextExportTime;
@@ -170,7 +172,7 @@ public final class BatchSpanProcessor implements SpanProcessor {
       this.exporterTimeoutNanos = exporterTimeoutNanos;
       this.queue = queue;
       this.signal = new ArrayBlockingQueue<>(1);
-      /**
+      /*
        * Meter默认是SdkMeter（在SdkMeterProvider构造方法中被设置）, meterProvider默认是SdkMeterProvider
        * build调用获取的内容是SdkMeterProvider构造方法设置的: new SdkMeter(sharedState, instrumentationLibraryInfo, registeredReaders)
        * 这里设置了scope的名称为：io.opentelemetry.sdk.trace
@@ -214,11 +216,12 @@ public final class BatchSpanProcessor implements SpanProcessor {
         if (flushRequested.get() != null) {
           flush();
         }
-        JcTools.drain(
-            queue, maxExportBatchSize - batch.size(), span -> batch.add(span.toSpanData()));
+        // 将Span数据从queue中poll出来，添加到batch中
+        JcTools.drain(queue, maxExportBatchSize - batch.size(), span -> batch.add(span.toSpanData()));
 
         if (batch.size() >= maxExportBatchSize || System.nanoTime() >= nextExportTime) {
           exportCurrentBatch();
+          // 更新nextExportTime时间为5s后
           updateNextExportTime();
         }
         if (queue.isEmpty()) {
@@ -303,6 +306,7 @@ public final class BatchSpanProcessor implements SpanProcessor {
         CompletableResultCode result = spanExporter.export(Collections.unmodifiableList(batch));
         result.join(exporterTimeoutNanos, TimeUnit.NANOSECONDS);
         if (result.isSuccess()) {
+          // 统计导出数量
           processedSpansCounter.add(batch.size(), exportedAttrs);
         } else {
           logger.log(Level.FINE, "Exporter failed");

@@ -85,7 +85,7 @@ public final class ViewRegistry {
   /** Returns a {@link ViewRegistry}. */
   public static ViewRegistry create(DefaultAggregationSelector defaultAggregationSelector,
       CardinalityLimitSelector cardinalityLimitSelector, List<RegisteredView> registeredViews) {
-    /**
+    /*
      * 这里传入的DefaultAggregationSelector实际是子类PeriodicMetricReader
      * CardinalityLimitSelector是默认值为2000的函数表达式
      * registeredViews这个从代码上来看是通过解析配置文件加载进来的，如果没哟配置，那默认应该是一个空ArrayList

@@ -31,7 +31,10 @@ public final class KeyValueMarshaler extends MarshalerWithSize {
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final KeyValueMarshaler[] EMPTY_REPEATED = new KeyValueMarshaler[0];
 
-  /** Returns Marshalers for the given Attributes. */
+  /**
+   * Returns Marshalers for the given Attributes.
+   * 将Attributes转为通过数组存储
+   */
   @SuppressWarnings("AvoidObjectArrays")
   public static KeyValueMarshaler[] createRepeated(Attributes attributes) {
     if (attributes.isEmpty()) {
@@ -43,6 +46,7 @@ public final class KeyValueMarshaler extends MarshalerWithSize {
         new BiConsumer<AttributeKey<?>, Object>() {
           int index = 0;
 
+          // 这里的Object o其实就是属性值
           @Override
           public void accept(AttributeKey<?> attributeKey, Object o) {
             attributeMarshalers[index++] = KeyValueMarshaler.create(attributeKey, o);
@@ -66,8 +70,7 @@ public final class KeyValueMarshaler extends MarshalerWithSize {
     }
     switch (attributeKey.getType()) {
       case STRING:
-        return new KeyValueMarshaler(
-            keyUtf8, new StringAnyValueMarshaler(MarshalerUtil.toBytes((String) value)));
+        return new KeyValueMarshaler(keyUtf8, new StringAnyValueMarshaler(MarshalerUtil.toBytes((String) value)));
       case LONG:
         return new KeyValueMarshaler(keyUtf8, new Int64AnyValueMarshaler((long) value));
       case BOOLEAN:
@@ -75,21 +78,13 @@ public final class KeyValueMarshaler extends MarshalerWithSize {
       case DOUBLE:
         return new KeyValueMarshaler(keyUtf8, new AnyDoubleFieldMarshaler((double) value));
       case STRING_ARRAY:
-        return new KeyValueMarshaler(
-            keyUtf8,
-            new ArrayAnyValueMarshaler(ArrayValueMarshaler.createString((List<String>) value)));
+        return new KeyValueMarshaler(keyUtf8, new ArrayAnyValueMarshaler(ArrayValueMarshaler.createString((List<String>) value)));
       case LONG_ARRAY:
-        return new KeyValueMarshaler(
-            keyUtf8,
-            new ArrayAnyValueMarshaler(ArrayValueMarshaler.createInt64((List<Long>) value)));
+        return new KeyValueMarshaler(keyUtf8, new ArrayAnyValueMarshaler(ArrayValueMarshaler.createInt64((List<Long>) value)));
       case BOOLEAN_ARRAY:
-        return new KeyValueMarshaler(
-            keyUtf8,
-            new ArrayAnyValueMarshaler(ArrayValueMarshaler.createBool((List<Boolean>) value)));
+        return new KeyValueMarshaler(keyUtf8, new ArrayAnyValueMarshaler(ArrayValueMarshaler.createBool((List<Boolean>) value)));
       case DOUBLE_ARRAY:
-        return new KeyValueMarshaler(
-            keyUtf8,
-            new ArrayAnyValueMarshaler(ArrayValueMarshaler.createDouble((List<Double>) value)));
+        return new KeyValueMarshaler(keyUtf8, new ArrayAnyValueMarshaler(ArrayValueMarshaler.createDouble((List<Double>) value)));
     }
     // Error prone ensures the switch statement is complete, otherwise only can happen with
     // unaligned versions which are not supported.

@@ -72,8 +72,7 @@ public final class JcTools {
     }
   }
 
-  private static <T> void drainNonJcQueue(
-      Queue<T> queue, int maxExportBatchSize, Consumer<T> consumer) {
+  private static <T> void drainNonJcQueue(Queue<T> queue, int maxExportBatchSize, Consumer<T> consumer) {
     int polledCount = 0;
     T item;
     while (polledCount++ < maxExportBatchSize && (item = queue.poll()) != null) {

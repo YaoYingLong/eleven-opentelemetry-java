@@ -219,8 +219,7 @@ public class GrpcExporterBuilder<T extends Marshaler> {
    */
   private static GrpcSenderProvider resolveGrpcSenderProvider() {
     Map<String, GrpcSenderProvider> grpcSenderProviders = new HashMap<>();
-    for (GrpcSenderProvider spi :
-        ServiceLoader.load(GrpcSenderProvider.class, GrpcExporterBuilder.class.getClassLoader())) {
+    for (GrpcSenderProvider spi : ServiceLoader.load(GrpcSenderProvider.class, GrpcExporterBuilder.class.getClassLoader())) {
       grpcSenderProviders.put(spi.getClass().getName(), spi);
     }
 

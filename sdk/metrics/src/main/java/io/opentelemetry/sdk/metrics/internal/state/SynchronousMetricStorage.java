@@ -40,7 +40,7 @@ public interface SynchronousMetricStorage extends MetricStorage, WriteableMetric
       RegisteredView registeredView, InstrumentDescriptor instrumentDescriptor, ExemplarFilter exemplarFilter) {
     View view = registeredView.getView();
     MetricDescriptor metricDescriptor = MetricDescriptor.create(view, registeredView.getViewSourceInfo(), instrumentDescriptor);
-    /**
+    /*
      * 调用具体的View得到的是DefaultAggregation，然后调用DefaultAggregation的createAggregator
      *   COUNTER: SumAggregation
      *   UP_DOWN_COUNTER: SumAggregation

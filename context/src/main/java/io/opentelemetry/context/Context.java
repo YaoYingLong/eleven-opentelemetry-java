@@ -67,16 +67,16 @@ import javax.annotation.Nullable;
  * <p>Notes and cautions on use:
  *
  * <ul>
- *   - 每一个makeCurrent()被调用都必须有一个Scope#close()被调用，否则可能导致内存泄漏或错误的作用域
+ *
  *   <li>Every {@link #makeCurrent()} must be followed by a {@link Scope#close()}. Breaking these
  *       rules may lead to memory leaks and incorrect scoping.
- *   - 虽然 Context 对象是不可变的，但它们不会对它们存储的 state 施加这样的限制。
+ *
  *   <li>While Context objects are immutable they do not place such a restriction on the state they
  *       store.
- *   - Context 不是用于将可选参数传递给 API，开发人员在设计 API 时应注意避免过度依赖 context
+ *
  *   <li>Context is not intended for passing optional parameters to an API and developers should
  *       take care to avoid excessive dependence on context when designing an API.
- *   -
+ *
  *   <li>Attaching Context from a different ancestor will cause information in the current Context
  *       to be lost. This should generally be avoided.
  * </ul>
@@ -95,6 +95,10 @@ import javax.annotation.Nullable;
  * of kotlin coroutines where this mechanism does not function.
  *
  * @see StrictContextStorage
+ *
+ *  - 每一个makeCurrent()被调用都必须有一个Scope#close()被调用，否则可能导致内存泄漏或错误的作用域
+ *  - 虽然 Context 对象是不可变的，但它们不会对它们存储的 state 施加这样的限制。
+ *  - Context 不是用于将可选参数传递给 API，开发人员在设计 API 时应注意避免过度依赖 context
  */
 public interface Context {
 

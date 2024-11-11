@@ -73,7 +73,7 @@ public final class CallbackRegistration {
     }
     // Set the active reader on each observable measurement so that measurements are only recorded to relevant storages
     observableMeasurements.forEach(observableMeasurement -> observableMeasurement.setActiveReader(reader, startEpochNanos, epochNanos));
-    /**
+    /*
      * callback.run()这里真正调用通过buildWithCallback方法注册进来的异步方法，其实就是一个函数表达式
      * 例子：buildWithCallback(result -> result.record(queue.size(), Attributes.of(SPAN_PROCESSOR_TYPE_LABEL, SPAN_PROCESSOR_TYPE_VALUE)));
      * 上面表达式中的result其实是表示ObservableMeasurement，即AbstractInstrumentBuilder中通过buildObservableMeasurement构建的

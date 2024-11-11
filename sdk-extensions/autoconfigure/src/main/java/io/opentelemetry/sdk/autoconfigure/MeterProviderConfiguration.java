@@ -50,7 +50,7 @@ final class MeterProviderConfiguration {
     if (cardinalityLimit < 1) {
       throw new ConfigurationException("otel.experimental.metrics.cardinality.limit must be >= 1");
     }
-    /**
+    /*
      * 首先通过configureMetricReaders生成，由PeriodicMetricReader包装的OtlpGrpcMetricExporter
      *  - MetricExporter默认是OtlpGrpcMetricExporter，可以通过otel.metrics.exporter配置修改为OtlpJsonLoggingMetricExporter或LoggingMetricExporter，直接打印日志到控制台或日志文件中
      *  - 也可以同时设置多个MetricExporter

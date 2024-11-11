@@ -41,7 +41,7 @@ import javax.annotation.Nullable;
  * a unit test to ensure the tested code cleaned up scopes correctly.
  *
  * 用于跟踪打开和关闭的Scope，如果Scope关闭不正确或根本没有关闭，则报告调用方信息。
- * <p>调用 {@link StrictContextStorageclose（）} 将在调用时检查是否有任何已打开但尚未关闭的作用域。
+ * 调用StrictContextStorage的close访法将在调用时检查是否有任何已打开但尚未关闭的作用域。
  * 这可以在单元测试结束时调用，以确保被测试的代码正确清理了范围。
  *
  * 提供的一种用于上下文传播的调试机制，可以通过在JVM 参数中设置-Dio.opentelemetry.context.enableStrictContext=true来启用该机制。

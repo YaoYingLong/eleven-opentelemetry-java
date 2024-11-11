@@ -317,12 +317,12 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
   public AutoConfiguredOpenTelemetrySdk build() {
     if (!customized) {
       customized = true;
-      /**
+      /*
        * 这里是通过SPI机制加载SdkTracerProviderConfigurer接口子类，并调用其configure方法，该方法可以去修改设置SdkTracerProviderBuilder中的属性
        * 这里调用SdkTracerProviderConfigurer#configure方法是会生成一个函数表达式列表，存储到当前类的tracerProviderCustomizer
        */
       mergeSdkTracerProviderConfigurer();
-      /**
+      /*
        * 这里也是通过SPI机制加载AutoConfigurationCustomizerProvider接口子类，并调用其customize方法
        * 通过这种方式可以向当前类添加：tracerProviderCustomizer、propagatorCustomizer、meterProviderCustomizer、metricExporterCustomizer等各种属性
        * 可以通过添加propertiesCustomizers这种方式添加或修改OpenTelemetry配置
@@ -337,7 +337,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
     // 这里就会调用上面通过自定义AutoConfigurationCustomizerProvider添加的propertiesCustomizers的函数表达式，真正去覆盖并merge默认配置和自定义配置
     ConfigProperties config = getConfig();
 
-    /**
+    /*
      * 这首先会通过ConfigProperties中的otel.java.enabled.resource.providers和otel.java.disabled.resource.providers中配置的ResourceProvider
      * 来添加或排除ResourceProvider，即包含在enabled中的，且不包含在disabled中的ResourceProvider，执行其createResource方法创建Resource并Merge
      * 到Default的Resource中，然后再调用通过自定义AutoConfigurationCustomizerProvider添加的resourceCustomizer的函数表达式列表
@@ -349,7 +349,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
     List<Closeable> closeables = new ArrayList<>();
 
     try {
-      /**
+      /*
        * 构建OpenTelemetrySdk，并初始化SdkTracerProvider、SdkMeterProvider、SdkLoggerProvider，这里其实都是一个空壳
        */
       OpenTelemetrySdk openTelemetrySdk = OpenTelemetrySdk.builder().build();
@@ -359,7 +359,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
         // 这里其实就是new一个SdkMeterProviderBuilder
         SdkMeterProviderBuilder meterProviderBuilder = SdkMeterProvider.builder();
         meterProviderBuilder.setResource(resource); // 设置resource到meterProviderBuilder中
-        /**
+        /*
          * 这里就是干了两件事
          * 1、通过反射的方式嗲用SdkMeterProviderBuilder的setExemplarFilter设置TraceBasedExemplarFilter
          * 2、将构建的MetricExporter列表和默认值为2000的cardinalityLimit通过函数表达式的方式设置到SdkMeterProviderBuilder的metricReaders（实际是一个HashMap）
@@ -367,7 +367,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
         MeterProviderConfiguration.configureMeterProvider(meterProviderBuilder, config, spiHelper, metricExporterCustomizer, closeables);
         // 调用通过自定义AutoConfigurationCustomizerProvider添加的meterProviderCustomizer的函数表达式列表，作用是修改SdkMeterProviderBuilder
         meterProviderBuilder = meterProviderCustomizer.apply(meterProviderBuilder, config);
-        /**
+        /*
          * 比较重要也比较复杂
          *  1、向PeriodicMetricReader中注册持有的CollectionRegistration为SdkCollectionRegistration
          */
@@ -393,7 +393,7 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
         SdkLoggerProvider loggerProvider = loggerProviderBuilder.build();
         closeables.add(loggerProvider);
 
-        /**
+        /*
          * 通过SPI机制加载ConfigurablePropagatorProvider，并执行getPropagator方法获取具体的TextMapPropagator列表
          * 从ConfigProperties中获取otel.propagators配置配置的TextMapPropagator名称列表，默认为tracecontext, baggage
          * 即默认配置为W3CTraceContextPropagator和W3CBaggagePropagator

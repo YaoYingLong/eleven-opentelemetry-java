@@ -40,7 +40,7 @@ final class MetricExporterConfiguration {
 
   static MetricReader configureReader(String name, ConfigProperties config, SpiHelper spiHelper,
       BiFunction<? super MetricExporter, ConfigProperties, ? extends MetricExporter> metricExporterCustomizer, List<Closeable> closeables) {
-    /**
+    /*
      * 通过SPI机制加载系统已有的ConfigurableMetricExporterProvider: 目前支持的
      *    EXPORTER_ARTIFACT_ID_BY_NAME.put("logging", "opentelemetry-exporter-logging");  LoggingMetricExporterProvider
      *    EXPORTER_ARTIFACT_ID_BY_NAME.put("logging-otlp", "opentelemetry-exporter-logging-otlp"); LoggingMetricExporterProvider

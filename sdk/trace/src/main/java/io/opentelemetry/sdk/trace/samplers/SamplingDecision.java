@@ -21,7 +21,7 @@ public enum SamplingDecision {
    * parent-based} samplers will not sample the span.
    *
    * 仅录制 Span。生成的 span 将记录所有信息，如 timings 和 attributes，但不会导出。
-   * 下游 {@linkplain SamplerparentBased（Sampler） parent-based} 采样器不会对范围进行采样。
+   * 下游SamplerparentBased（Sampler）采样器不会对范围进行采样。
    */
   RECORD_ONLY,
   /**

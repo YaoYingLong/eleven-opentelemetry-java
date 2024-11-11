@@ -74,7 +74,7 @@ public final class SdkMeterProvider implements MeterProvider, Closeable {
       List<MetricProducer> readerMetricProducers = new ArrayList<>(metricProducers);
       // 这里的MetricProducer是LeasedMetricProducer
       readerMetricProducers.add(new LeasedMetricProducer(registry, sharedState, registeredReader));
-      /**
+      /*
        * 这里比较重要，确定了PeriodicMetricReader中持有的CollectionRegistration为SdkCollectionRegistration
        * 且这里调用RegisteredReader的getReader获取到的是PeriodicMetricReader，这里实际是调用的PeriodicMetricReader的register
        * register方法中启动周期执行任务

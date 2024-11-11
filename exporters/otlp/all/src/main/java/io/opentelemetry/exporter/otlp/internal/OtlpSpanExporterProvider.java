@@ -28,7 +28,9 @@ import io.opentelemetry.sdk.trace.export.SpanExporter;
 public class OtlpSpanExporterProvider implements ConfigurableSpanExporterProvider {
   @Override
   public SpanExporter createExporter(ConfigProperties config) {
+    // 若未配置otel.exporter.otlp.traces.protocol则默认返回grpc
     String protocol = OtlpConfigUtil.getOtlpProtocol(DATA_TYPE_TRACES, config);
+    // 若是http/protobuf
     if (protocol.equals(PROTOCOL_HTTP_PROTOBUF)) {
       OtlpHttpSpanExporterBuilder builder = httpBuilder();
 
@@ -47,8 +49,9 @@ public class OtlpSpanExporterProvider implements ConfigurableSpanExporterProvide
     } else if (protocol.equals(PROTOCOL_GRPC)) {
       OtlpGrpcSpanExporterBuilder builder = grpcBuilder();
 
+      // 从配置中读取Endpoint、Timeout等数据设置到Builder中，用于构建OtlpGrpcSpanExporter
       OtlpConfigUtil.configureOtlpExporterBuilder(
-          DATA_TYPE_TRACES,
+          DATA_TYPE_TRACES,   // traces
           config,
           builder::setEndpoint,
           builder::addHeader,
