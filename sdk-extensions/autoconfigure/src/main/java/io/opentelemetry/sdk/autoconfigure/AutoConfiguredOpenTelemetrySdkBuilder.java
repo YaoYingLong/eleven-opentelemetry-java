@@ -54,37 +54,27 @@ import javax.annotation.Nullable;
  */
 public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigurationCustomizer {
 
-  private static final Logger logger =
-      Logger.getLogger(AutoConfiguredOpenTelemetrySdkBuilder.class.getName());
+  private static final Logger logger = Logger.getLogger(AutoConfiguredOpenTelemetrySdkBuilder.class.getName());
 
   @Nullable private ConfigProperties config;
 
-  private BiFunction<SdkTracerProviderBuilder, ConfigProperties, SdkTracerProviderBuilder>
-      tracerProviderCustomizer = (a, unused) -> a;
-  private BiFunction<? super TextMapPropagator, ConfigProperties, ? extends TextMapPropagator>
-      propagatorCustomizer = (a, unused) -> a;
-  private BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter>
-      spanExporterCustomizer = (a, unused) -> a;
-  private BiFunction<? super Sampler, ConfigProperties, ? extends Sampler> samplerCustomizer =
-      (a, unused) -> a;
+  // 干预SdkTracerProviderBuilder的构建，在构建完成后执行该函数表达式
+  private BiFunction<SdkTracerProviderBuilder, ConfigProperties, SdkTracerProviderBuilder> tracerProviderCustomizer = (a, unused) -> a;
+  private BiFunction<? super TextMapPropagator, ConfigProperties, ? extends TextMapPropagator> propagatorCustomizer = (a, unused) -> a;
+  private BiFunction<? super SpanExporter, ConfigProperties, ? extends SpanExporter> spanExporterCustomizer = (a, unused) -> a;
+  private BiFunction<? super Sampler, ConfigProperties, ? extends Sampler> samplerCustomizer = (a, unused) -> a;
 
-  private BiFunction<SdkMeterProviderBuilder, ConfigProperties, SdkMeterProviderBuilder>
-      meterProviderCustomizer = (a, unused) -> a;
-  private BiFunction<? super MetricExporter, ConfigProperties, ? extends MetricExporter>
-      metricExporterCustomizer = (a, unused) -> a;
+  private BiFunction<SdkMeterProviderBuilder, ConfigProperties, SdkMeterProviderBuilder> meterProviderCustomizer = (a, unused) -> a;
+  private BiFunction<? super MetricExporter, ConfigProperties, ? extends MetricExporter> metricExporterCustomizer = (a, unused) -> a;
 
-  private BiFunction<SdkLoggerProviderBuilder, ConfigProperties, SdkLoggerProviderBuilder>
-      loggerProviderCustomizer = (a, unused) -> a;
-  private BiFunction<? super LogRecordExporter, ConfigProperties, ? extends LogRecordExporter>
-      logRecordExporterCustomizer = (a, unused) -> a;
+  private BiFunction<SdkLoggerProviderBuilder, ConfigProperties, SdkLoggerProviderBuilder> loggerProviderCustomizer = (a, unused) -> a;
+  private BiFunction<? super LogRecordExporter, ConfigProperties, ? extends LogRecordExporter> logRecordExporterCustomizer = (a, unused) -> a;
 
-  private BiFunction<? super Resource, ConfigProperties, ? extends Resource> resourceCustomizer =
-      (a, unused) -> a;
+  private BiFunction<? super Resource, ConfigProperties, ? extends Resource> resourceCustomizer = (a, unused) -> a;
 
   private Supplier<Map<String, String>> propertiesSupplier = Collections::emptyMap;
 
-  private final List<Function<ConfigProperties, Map<String, String>>> propertiesCustomizers =
-      new ArrayList<>();
+  private final List<Function<ConfigProperties, Map<String, String>>> propertiesCustomizers = new ArrayList<>();
 
   private SpiHelper spiHelper = SpiHelper.create(AutoConfiguredOpenTelemetrySdk.class.getClassLoader());
 
@@ -320,6 +310,8 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
       /*
        * 这里是通过SPI机制加载SdkTracerProviderConfigurer接口子类，并调用其configure方法，该方法可以去修改设置SdkTracerProviderBuilder中的属性
        * 这里调用SdkTracerProviderConfigurer#configure方法是会生成一个函数表达式列表，存储到当前类的tracerProviderCustomizer
+       *
+       * 但是SdkTracerProviderConfigurer已经被标注为@Deprecated
        */
       mergeSdkTracerProviderConfigurer();
       /*
@@ -328,6 +320,8 @@ public final class AutoConfiguredOpenTelemetrySdkBuilder implements AutoConfigur
        * 可以通过添加propertiesCustomizers这种方式添加或修改OpenTelemetry配置
        *
        * 这里添加的各种函数表达式，会影响后面各个组件的创建，因为各个组件的创建都会调用到这里添加的函数表达式
+       *
+       * 注意：AutoConfigurationCustomizerProvider继承了Ordered，且数字越大越后执行
        */
       for (AutoConfigurationCustomizerProvider customizer : spiHelper.loadOrdered(AutoConfigurationCustomizerProvider.class)) {
         customizer.customize(this);

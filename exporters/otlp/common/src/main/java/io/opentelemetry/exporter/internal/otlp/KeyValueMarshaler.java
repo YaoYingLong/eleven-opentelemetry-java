@@ -33,7 +33,7 @@ public final class KeyValueMarshaler extends MarshalerWithSize {
 
   /**
    * Returns Marshalers for the given Attributes.
-   * 将Attributes转为通过数组存储
+   * 将Attributes（实际类型是UnsafeAttributes本质是一个HashMap）转为通过数组存储
    */
   @SuppressWarnings("AvoidObjectArrays")
   public static KeyValueMarshaler[] createRepeated(Attributes attributes) {

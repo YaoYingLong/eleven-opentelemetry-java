@@ -44,11 +44,7 @@ final class SpanEventMarshaler extends MarshalerWithSize {
         event.getTotalAttributeCount() - event.getAttributes().size());
   }
 
-  private SpanEventMarshaler(
-      long epochNanos,
-      byte[] name,
-      KeyValueMarshaler[] attributeMarshalers,
-      int droppedAttributesCount) {
+  private SpanEventMarshaler(long epochNanos, byte[] name, KeyValueMarshaler[] attributeMarshalers, int droppedAttributesCount) {
     super(calculateSize(epochNanos, name, attributeMarshalers, droppedAttributesCount));
     this.epochNanos = epochNanos;
     this.name = name;

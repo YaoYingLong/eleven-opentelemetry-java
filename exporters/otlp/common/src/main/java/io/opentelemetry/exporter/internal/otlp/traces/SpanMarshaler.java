@@ -40,20 +40,17 @@ final class SpanMarshaler extends MarshalerWithSize {
 
   // Because SpanMarshaler is always part of a repeated field, it cannot return "null".
   static SpanMarshaler create(SpanData spanData) {
+    // 这里其实是将UnsafeAttributes本质是一个HashMap存储的属性数据转换为由数组存储
     KeyValueMarshaler[] attributeMarshalers = KeyValueMarshaler.createRepeated(spanData.getAttributes());
-    SpanEventMarshaler[] spanEventMarshalers =
-        SpanEventMarshaler.createRepeated(spanData.getEvents());
+    SpanEventMarshaler[] spanEventMarshalers = SpanEventMarshaler.createRepeated(spanData.getEvents());
     SpanLinkMarshaler[] spanLinkMarshalers = SpanLinkMarshaler.createRepeated(spanData.getLinks());
 
-    String parentSpanId =
-        spanData.getParentSpanContext().isValid()
+    String parentSpanId = spanData.getParentSpanContext().isValid()
             ? spanData.getParentSpanContext().getSpanId()
             : null;
 
     TraceState traceState = spanData.getSpanContext().getTraceState();
-    byte[] traceStateUtf8 =
-        traceState.isEmpty()
-            ? EMPTY_BYTES
+    byte[] traceStateUtf8 = traceState.isEmpty() ? EMPTY_BYTES
             : encodeTraceState(traceState).getBytes(StandardCharsets.UTF_8);
 
     return new SpanMarshaler(

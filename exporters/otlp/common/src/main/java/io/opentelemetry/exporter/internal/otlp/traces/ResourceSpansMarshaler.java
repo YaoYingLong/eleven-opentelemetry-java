@@ -33,19 +33,15 @@ public final class ResourceSpansMarshaler extends MarshalerWithSize {
   /** Returns Marshalers of ResourceSpans created by grouping the provided SpanData. */
   @SuppressWarnings("AvoidObjectArrays")
   public static ResourceSpansMarshaler[] create(Collection<SpanData> spanDataList) {
-    Map<Resource, Map<InstrumentationScopeInfo, List<SpanMarshaler>>> resourceAndScopeMap =
-        groupByResourceAndScope(spanDataList);
+    // 将SpanList数据通过Resource和Scope进行分组
+    Map<Resource, Map<InstrumentationScopeInfo, List<SpanMarshaler>>> resourceAndScopeMap = groupByResourceAndScope(spanDataList);
 
-    ResourceSpansMarshaler[] resourceSpansMarshalers =
-        new ResourceSpansMarshaler[resourceAndScopeMap.size()];
+    ResourceSpansMarshaler[] resourceSpansMarshalers = new ResourceSpansMarshaler[resourceAndScopeMap.size()];
     int posResource = 0;
-    for (Map.Entry<Resource, Map<InstrumentationScopeInfo, List<SpanMarshaler>>> entry :
-        resourceAndScopeMap.entrySet()) {
-      InstrumentationScopeSpansMarshaler[] instrumentationScopeSpansMarshalers =
-          new InstrumentationScopeSpansMarshaler[entry.getValue().size()];
+    for (Map.Entry<Resource, Map<InstrumentationScopeInfo, List<SpanMarshaler>>> entry : resourceAndScopeMap.entrySet()) {
+      InstrumentationScopeSpansMarshaler[] instrumentationScopeSpansMarshalers = new InstrumentationScopeSpansMarshaler[entry.getValue().size()];
       int posInstrumentation = 0;
-      for (Map.Entry<InstrumentationScopeInfo, List<SpanMarshaler>> entryIs :
-          entry.getValue().entrySet()) {
+      for (Map.Entry<InstrumentationScopeInfo, List<SpanMarshaler>> entryIs : entry.getValue().entrySet()) {
         instrumentationScopeSpansMarshalers[posInstrumentation++] =
             new InstrumentationScopeSpansMarshaler(
                 InstrumentationScopeMarshaler.create(entryIs.getKey()),

@@ -33,15 +33,12 @@ public final class TraceRequestMarshaler extends MarshalerWithSize {
   }
 
   private TraceRequestMarshaler(ResourceSpansMarshaler[] resourceSpansMarshalers) {
-    super(
-        MarshalerUtil.sizeRepeatedMessage(
-            ExportTraceServiceRequest.RESOURCE_SPANS, resourceSpansMarshalers));
+    super(MarshalerUtil.sizeRepeatedMessage(ExportTraceServiceRequest.RESOURCE_SPANS, resourceSpansMarshalers));
     this.resourceSpansMarshalers = resourceSpansMarshalers;
   }
 
   @Override
   public void writeTo(Serializer output) throws IOException {
-    output.serializeRepeatedMessage(
-        ExportTraceServiceRequest.RESOURCE_SPANS, resourceSpansMarshalers);
+    output.serializeRepeatedMessage(ExportTraceServiceRequest.RESOURCE_SPANS, resourceSpansMarshalers);
   }
 }

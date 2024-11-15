@@ -58,12 +58,13 @@ public final class GrpcExporter<T extends Marshaler> {
 
     CompletableResultCode result = new CompletableResultCode();
 
-    grpcSender.send(
-        exportRequest,
+    grpcSender.send(exportRequest,
+        // 发送成功后的回掉
         () -> {
           exporterMetrics.addSuccess(numItems);
           result.succeed();
         },
+        // 出现异常时的回掉
         (response, throwable) -> {
           exporterMetrics.addFailed(numItems);
           switch (response.grpcStatusValue()) {
@@ -74,9 +75,7 @@ public final class GrpcExporter<T extends Marshaler> {
               }
               break;
             case GRPC_STATUS_UNAVAILABLE:
-              logger.log(
-                  Level.SEVERE,
-                  "Failed to export "
+              logger.log(Level.SEVERE, "Failed to export "
                       + type
                       + "s. Server is UNAVAILABLE. "
                       + "Make sure your collector is running and reachable from this network. "
@@ -84,8 +83,7 @@ public final class GrpcExporter<T extends Marshaler> {
                       + response.grpcStatusDescription());
               break;
             default:
-              logger.log(
-                  Level.WARNING,
+              logger.log(Level.WARNING,
                   "Failed to export "
                       + type
                       + "s. Server responded with gRPC status code "
@@ -95,8 +93,7 @@ public final class GrpcExporter<T extends Marshaler> {
               break;
           }
           if (logger.isLoggable(Level.FINEST)) {
-            logger.log(
-                Level.FINEST, "Failed to export " + type + "s. Details follow: " + throwable);
+            logger.log(Level.FINEST, "Failed to export " + type + "s. Details follow: " + throwable);
           }
           result.fail();
         });

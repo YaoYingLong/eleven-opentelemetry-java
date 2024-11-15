@@ -43,8 +43,7 @@ public final class OtlpJsonLoggingSpanExporter implements SpanExporter {
 
     ResourceSpansMarshaler[] allResourceSpans = ResourceSpansMarshaler.create(spans);
     for (ResourceSpansMarshaler resourceSpans : allResourceSpans) {
-      SegmentedStringWriter sw =
-          new SegmentedStringWriter(JsonUtil.JSON_FACTORY._getBufferRecycler());
+      SegmentedStringWriter sw = new SegmentedStringWriter(JsonUtil.JSON_FACTORY._getBufferRecycler());
       try (JsonGenerator gen = JsonUtil.create(sw)) {
         resourceSpans.writeJsonTo(gen);
       } catch (IOException e) {
